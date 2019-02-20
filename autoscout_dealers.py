@@ -7,8 +7,8 @@ from autoscrap.spiders.autoscout_dealers import AutoscoutDealersSpider
 
 LOCALIZATIONS = {
   'it': ['Firenze', 'Bologna', 'Roma', 'Milano', 'Bergamo', 'Busto Arsizio',
-         'Livorno', 'Lukka', 'Pistoia', 'Viareggio'],
-  'fr': ['Lyon', 'Paris'],
+         'Livorno', 'Lucca', 'Pistoia', 'Viareggio', 'Pisa'],
+  'fr': ['Lyon', 'Paris', 'Bourg en Bresse', 'Oyonax', 'Annegy', 'Chambery'],
   'de': ['Berlin', 'Mannheim'],
 }
 

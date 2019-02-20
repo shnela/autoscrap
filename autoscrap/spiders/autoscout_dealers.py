@@ -4,6 +4,7 @@ import humps
 import json
 import re
 
+from geopy import distance
 from geopy.geocoders import Nominatim
 import scrapy
 from scrapy.utils.project import get_project_settings
@@ -33,9 +34,11 @@ class AutoscoutDealersSpider(scrapy.Spider):
   # }
   allowed_domains = ['autoscout24.it', 'autoscout24.fr', 'autoscout24.de']
 
-  def __init__(self, localization, city, km_to=2500, register_from=2018):
+  def __init__(self, localization, city, km_to=2500, register_from=2018,
+               max_distance_km=30):
     super().__init__()
     self.city = city
+    self.max_distance_km = max_distance_km
 
     try:
       autoscout_urls = AUTOSCOUT_URLS[localization]
@@ -48,21 +51,14 @@ class AutoscoutDealersSpider(scrapy.Spider):
     self.dealer_url_template = dealer_url_template
     self.geolocation = self.get_geolocation(city)
 
-  def get_geolocation(self, city):
-    user_agent = get_project_settings()['USER_AGENT']
-    geolocator = Nominatim(user_agent=user_agent, timeout=10)
-    location = geolocator.geocode(city)
-    return {
-      "Longitude": location.longitude,
-      "Latitude": location.latitude,
-    }
-
   def start_requests(self, page=1):
     results_per_page = 100
     data = {
-      "CurrentPage": page, "ResultsPerPage": results_per_page,
+      'CurrentPage': page, 'ResultsPerPage': results_per_page,
+      'Distance': self.max_distance_km, 'Sorting': 'location',
     }
-    data.update(self.geolocation)
+    as_geo = self.geopy2autoscout_geo(self.geolocation)
+    data.update(as_geo)
     yield scrapy.Request(
       url=self.dealers_list_url, method='POST',
       headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -84,6 +80,31 @@ class AutoscoutDealersSpider(scrapy.Spider):
       self.logger.info("Page {}".format(page))
       yield from self.start_requests(page + 1)
 
+  @staticmethod
+  def get_geolocation(city):
+    user_agent = get_project_settings()['USER_AGENT']
+    geolocator = Nominatim(user_agent=user_agent, timeout=10)
+    return geolocator.geocode(city)
+
+  @staticmethod
+  def autoscout_geo2geopy(as_geo):
+    return as_geo['Longitude'], as_geo['Latitude']
+
+  @staticmethod
+  def geopy2autoscout_geo(geopy_geo):
+    return {
+      'Longitude': geopy_geo.longitude,
+      'Latitude': geopy_geo.latitude,
+    }
+
+  def get_distance_from_location(self, dealer):
+    """
+    Returns distance between self.location and dealer location
+    """
+    city_geo = self.geolocation.longitude, self.geolocation.latitude
+    dealer_geo = self.autoscout_geo2geopy(dealer['GeoLocation'])
+    return int(distance.distance(city_geo, dealer_geo).km)
+
   @classmethod
   def get_phone_numbers(cls, dealer):
     for phone_data in dealer['PhoneNumbers']:
@@ -95,8 +116,7 @@ class AutoscoutDealersSpider(scrapy.Spider):
       )
       yield phone_number
 
-  @classmethod
-  def important_dealer_data(cls, dealer):
+  def important_dealer_data(self, dealer):
     required_fields = [
       'CompanyName',
       'CompanyUrl',
@@ -105,10 +125,10 @@ class AutoscoutDealersSpider(scrapy.Spider):
       'Zip',
       'AverageRatings',
       'RatingsCount',
-      'GeoLocation',
     ]
     dealer_important_data = {
-      'phones': list(cls.get_phone_numbers(dealer)),
+      'phones': list(self.get_phone_numbers(dealer)),
+      'distance': self.get_distance_from_location(dealer),
     }
     for field in required_fields:
       key = humps.decamelize(field)

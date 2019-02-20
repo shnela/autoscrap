@@ -15,7 +15,6 @@ class AutoscrapPipeline(object):
 
 
 class WriteToJson(object):
-
   def open_spider(self, spider):
     filename = 'out/{}_{}.js'.format(spider.name, spider.city)
     self.file = open(filename, 'w')
