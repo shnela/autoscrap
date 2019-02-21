@@ -14,6 +14,12 @@ class AutoscrapPipeline(object):
     return item
 
 
+class SaveItemPipeline(object):
+  def process_item(self, item, spider):
+      item.save()
+      return item
+
+
 class WriteToJson(object):
   def open_spider(self, spider):
     filename = 'out/{}_{}.js'.format(spider.name, spider.city)

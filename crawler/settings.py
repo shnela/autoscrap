@@ -66,7 +66,8 @@ COOKIES_ENABLED = False
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'crawler.pipelines.WriteToXlsx': 300,
+   'crawler.pipelines.SaveItemPipeline': 100,
+   # 'crawler.pipelines.WriteToXlsx': 300,
    # 'crawler.pipelines.WriteToJson': 800,
 }
 
