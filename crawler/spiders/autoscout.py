@@ -63,45 +63,6 @@ class AutoscoutDealersSpider(scrapy.Spider):
       self.logger.info("Page {}".format(page))
       yield from self.start_requests(page + 1)
 
-  # def get_distance_from_location(self, dealer):
-  #   """
-  #   Returns distance between self.location and dealer location
-  #   """
-  #   city_geo = self.geolocation.longitude, self.geolocation.latitude
-  #   dealer_geo = autoscout_geo2geopy(dealer['GeoLocation'])
-  #   return int(distance.distance(city_geo, dealer_geo).km)
-
-  # @classmethod
-  # def get_phone_numbers(cls, dealer):
-  #   for phone_data in dealer['PhoneNumbers']:
-  #     phone_number = '{}: ({}) {} {}'.format(
-  #       phone_data['Type'],
-  #       phone_data['AreaCode'],
-  #       phone_data['CountryCode'],
-  #       phone_data['Number'],
-  #     )
-  #     yield phone_number
-  #
-  # def important_dealer_data(self, dealer):
-  #   required_fields = [
-  #     'Id',
-  #     'CompanyName',
-  #     'CompanyUrl',
-  #     'Country',
-  #     'City',
-  #     'Zip',
-  #     'AverageRatings',
-  #     'RatingsCount',
-  #   ]
-  #   dealer_important_data = {
-  #     'phones': list(self.get_phone_numbers(dealer)),
-  #     'distance': self.get_distance_from_location(dealer),
-  #   }
-  #   for field in required_fields:
-  #     key = humps.decamelize(field)
-  #     dealer_important_data[key] = dealer[field]
-  #   return dealer_important_data
-
 
 class AutoscoutDealerStatsSpider(scrapy.Spider):
   name = 'autoscout_dealer_stats'
@@ -109,12 +70,6 @@ class AutoscoutDealerStatsSpider(scrapy.Spider):
 
   def __init__(self, dealers, km_to=2500, register_from=2018):
     super().__init__()
-    # try:
-    #   autoscout_urls = AUTOSCOUT_URLS[localization]
-    # except KeyError:
-    #   # TODO: move to model
-    #   raise ValueError('Unknown localization: {}'.format(localization))
-
     self.dealers = dealers
     self.dealer_url_args = '?atype=C&kmto={}&fregfrom={}'.format(km_to,
                                                             register_from)

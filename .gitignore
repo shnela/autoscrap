@@ -2,3 +2,4 @@
 .idea
 .scrapy
 *.pyc
+db.sqlite3

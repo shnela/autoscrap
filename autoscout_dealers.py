@@ -6,10 +6,10 @@ from scrapy.utils.project import get_project_settings
 from crawler.spiders.autoscout import AutoscoutDealersSpider
 
 LOCALIZATIONS = {
-  'it': ['Firenze', 'Bologna', 'Roma', 'Milano', 'Bergamo', 'Busto Arsizio',
+  'I': ['Firenze', 'Bologna', 'Roma', 'Milano', 'Bergamo', 'Busto Arsizio',
          'Livorno', 'Lucca', 'Pistoia', 'Viareggio', 'Pisa'],
-  'fr': ['Lyon', 'Paris', 'Bourg en Bresse', 'Oyonax', 'Annegy', 'Chambery'],
-  'de': ['Berlin', 'Mannheim'],
+  'F': ['Lyon', 'Paris', 'Bourg en Bresse', 'Oyonax', 'Annegy', 'Chambery'],
+  'D': ['Berlin', 'Mannheim'],
 }
 
 

@@ -4,6 +4,33 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
 
+LOCALIZATIONS = {
+  'I': ['Firenze', 'Bologna', 'Roma', 'Milano', 'Bergamo', 'Busto Arsizio',
+         'Livorno', 'Lucca', 'Pistoia', 'Viareggio', 'Pisa'],
+  'F': ['Lyon', 'Paris', 'Bourg en Bresse', 'Oyonax', 'Annegy', 'Chambery'],
+  'D': ['Berlin', 'Mannheim'],
+}
+
+from twisted.internet import reactor, defer
+from scrapy.crawler import CrawlerRunner
+from scrapy.utils.project import get_project_settings
+
+runner = CrawlerRunner(get_project_settings())
+
+
+@defer.inlineCallbacks
+def crawl():
+  for localization, cities in LOCALIZATIONS.items():
+    for city in cities:
+      try:
+        yield runner.crawl(AutoscoutDealersSpider,
+                           localization=localization, city=city)
+      except Exception as err:
+        print(localization, city, err)
+        runner.stop()
+  reactor.stop()
+
+
 class Command(BaseCommand):
   help = "Collect dealers from particular country and city"
 
@@ -14,7 +41,5 @@ class Command(BaseCommand):
                         help='City from which Dealers will be downloaded.')
 
   def handle(self, *args, **options):
-    process = CrawlerProcess(get_project_settings())
-    process.crawl(AutoscoutDealersSpider,
-                  localization=options['localization'], city=options['city'])
-    process.start()
+    crawl()
+    reactor.run()
