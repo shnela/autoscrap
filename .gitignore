@@ -3,3 +3,4 @@
 .scrapy
 *.pyc
 db.sqlite3
+environment.py

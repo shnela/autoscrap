@@ -16,17 +16,12 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'xk8dr0)e1rt9#3+8g)p&se4qgj2fzmn4dm!#m@n-wtk3p%o+4_'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+try:
+  from autoscrap.environment import *
+except ImportError:
+  raise ImportError('Please create {}/environment.py file '
+                    '(from environment_template.py).'.
+                    format(os.path.dirname(os.path.abspath(__file__))))
 
 # Application definition
 
@@ -70,17 +65,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'autoscrap.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/1.10/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
 
 
 # Password validation

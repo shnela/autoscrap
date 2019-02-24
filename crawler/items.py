@@ -7,36 +7,17 @@ from dealers.models import (
 
 class DealerItem(DjangoItem):
   django_model = Dealer
-  map_fields = {
-    'Id': 'id',
-    'UrlName': 'url_name',
-    'CompanyName': 'company_name',
-    'CompanyUrl': 'company_url',
-    'City': 'city',
-    'Zip': 'zip',
-    'Street': 'street',
-    'Country': 'country',
-    'AverageRatings': 'average_ratings',
-    'RatingsCount': 'ratings_count',
-    # preprocessed kwargs
-    'geo_long': 'geo_long',
-    'geo_lat': 'geo_lat',
-  }
 
-  @staticmethod
-  def preprocess_kwargs(kwargs):
-    kwargs['geo_long'] = kwargs['GeoLocation']['Longitude']
-    kwargs['geo_lat'] = kwargs['GeoLocation']['Latitude']
-    return kwargs
-
-  def __init__(self, *args, **kwargs):
-    kwargs = self.preprocess_kwargs(kwargs)
+  def __init__(self, dealer):
     kwargs = {
-      self.map_fields[k]: v
-      for k, v in kwargs.items()
-      if k in self.map_fields
+      'id': dealer['Id'],
+      'company_name': dealer['CompanyName'],
+      'zip': dealer['Zip'],
+      'city': dealer['City'],
+      'country': dealer['Country'],
+      'autoscout_data': dealer,
     }
-    super().__init__(*args, **kwargs)
+    super().__init__(**kwargs)
 
   @property
   def instance(self):

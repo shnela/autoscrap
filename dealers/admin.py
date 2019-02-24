@@ -43,20 +43,37 @@ class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
     'country',
     CarsCountFilter,
   )
-  inlines = (DealerStatsInline,)
-  readonly_fields = ['vehicles_url']
-  actions = (import_dealers,)
+  fieldsets = [
+    ('Company', {
+      'fields': [
+        'company_name',
+        'phone_numbers',
+        'address',
+        'company_url',
+      ]
+    }),
+    ('Cars', {
+      'fields': [
+        'vehicles_url',
+        'cars_count',
+      ]
+    }),
+    ('Other', {
+      'fields': [
+        'autoscout_data',
+        'created',
+        'modified',
+      ]
+    }),
+  ]
 
   def get_readonly_fields(self, request, obj=None):
-    # if request.user.is_superuser:
-    #   return self.readonly_fields
+    # all fields are read-only
+    return [e for fieldset in self.fieldsets for e in fieldset[1]['fields']]
 
-    return list(set(
-      [field.name for field in self.opts.local_fields] +
-      [field.name for field in self.opts.local_many_to_many] +
-      self.readonly_fields
-    ))
 
+  inlines = (DealerStatsInline,)
+  actions = (import_dealers,)
 
 admin.site.register(Dealer, DealerAdmin)
 admin.site.register(DealerStats, DealerStatsAdmin)

@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -43,21 +44,45 @@ class DealerStats(TimeStampedModel):
 
 class Dealer(TimeStampedModel):
   id = models.PositiveIntegerField(primary_key=True)
-  url_name = models.CharField(max_length=128)
   company_name = models.CharField(max_length=128)
-  company_url = models.CharField(max_length=128, null=True, blank=True)
-  # address
-  street = models.CharField(max_length=64)
   zip = models.CharField(max_length=16)
   city = models.CharField(max_length=64)
   country = models.CharField(max_length=1, choices=COUNTRY_CHOICES)
-  geo_long = models.DecimalField(max_digits=10, decimal_places=8)
-  geo_lat = models.DecimalField(max_digits=10, decimal_places=8)
-  # ratings
-  average_ratings = models.DecimalField(max_digits=3, decimal_places=2)
-  ratings_count = models.PositiveIntegerField()
+  # autoscout json data
+  autoscout_data = JSONField()
   # denormalized field of last created DealerStats
   cars_count = models.PositiveIntegerField(null=True, blank=True)
+
+  @property
+  def address(self):
+    return '{}\n {} {}\n {}'.format(
+      self.autoscout_data['Street'],
+      self.zip,
+      self.city,
+      self.get_country_display(),
+    )
+
+  @property
+  def phone_numbers(self):
+    phones = list()
+    for phone_obj in self.autoscout_data['PhoneNumbers']:
+      phone_str = '{}: +{} ({}) {}'.format(
+        phone_obj['Type'],
+        phone_obj['AreaCode'],
+        phone_obj['CountryCode'],
+        phone_obj['Number'],
+      )
+      phones.append(phone_str)
+    phones.sort()
+    return '\n'.join(phones)
+
+  @property
+  def url_name(self):
+    return self.autoscout_data['UrlName']
+
+  @property
+  def company_url(self):
+    return self.autoscout_data['CompanyUrl']
 
   @property
   def vehicles_url(self):
