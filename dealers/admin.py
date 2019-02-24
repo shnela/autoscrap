@@ -1,35 +1,27 @@
 from django.contrib import admin
-from django.contrib.admin import SimpleListFilter
-from django.db.models import Q
 
+from admintimestamps import TimestampedAdminMixin
+from djqscsv import write_csv
+
+from dealers.admin_filters import CarsCountFilter
 from dealers.models import (
   Dealer,
   DealerStats,
 )
-from admintimestamps import TimestampedAdminMixin
 
 
-class CarsCountFilter(SimpleListFilter):
-  title = 'cars_count'
-  parameter_name = 'cars_count'
+def import_dealers(modeladmin, request, queryset):
+  queryset = queryset.values(
+    'company_name',
+    'cars_count',
+    'city',
+    'country',
+  )
+  with open('out/dealers.csv', 'wb') as csv_file:
+    write_csv(queryset, csv_file)
 
-  def lookups(self, request, model_admin):
-    return (
-      ('0', 'None'),
-      ('1', 'Less than 10'),
-      ('2', 'Less than 100'),
-      ('3', '100 and more'),
-    )
 
-  def queryset(self, request, queryset):
-    if self.value() == '0':
-      return queryset.filter(Q(cars_count=0) | Q(cars_count__isnull=True))
-    elif self.value() == '1':
-      return queryset.filter(cars_count__gte=1, cars_count__lt=10)
-    elif self.value() == '2':
-      return queryset.filter(cars_count__gte=11, cars_count__lt=100)
-    elif self.value() == '3':
-      return queryset.filter(cars_count__gte=100)
+import_dealers.short_description = "Export dealers to csv file"
 
 
 class DealerStatsInline(admin.TabularInline):
@@ -53,6 +45,7 @@ class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
   )
   inlines = (DealerStatsInline,)
   readonly_fields = ['vehicles_url']
+  actions = (import_dealers,)
 
   def get_readonly_fields(self, request, obj=None):
     # if request.user.is_superuser:
