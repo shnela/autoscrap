@@ -1,6 +1,7 @@
 from scrapy_djangoitem import DjangoItem
 from dealers.models import (
   Dealer,
+  DealerCar,
   DealerStats,
 )
 
@@ -37,3 +38,7 @@ class DealerItem(DjangoItem):
 
 class DealerStatsItem(DjangoItem):
   django_model = DealerStats
+
+
+class DealerCarItem(DjangoItem):
+  django_model = DealerCar

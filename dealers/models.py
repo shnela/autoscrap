@@ -42,6 +42,15 @@ class DealerStats(TimeStampedModel):
     ordering = ('-created',)
 
 
+class DealerCar(TimeStampedModel):
+  dealer = models.ForeignKey('dealers.Dealer', on_delete=models.CASCADE)
+  info = models.CharField(max_length=64)
+  url = models.CharField(max_length=256)
+
+  class Meta:
+    ordering = ('-created',)
+
+
 class Dealer(TimeStampedModel):
   id = models.PositiveIntegerField(primary_key=True)
   company_name = models.CharField(max_length=128)

@@ -6,6 +6,7 @@ from djqscsv import write_csv
 from dealers.admin_filters import CarsCountFilter
 from dealers.models import (
   Dealer,
+  DealerCar,
   DealerStats,
 )
 
@@ -31,9 +32,21 @@ class DealerStatsInline(admin.TabularInline):
   extra = 0
 
 
+class DealerCarInline(admin.TabularInline):
+  model = DealerCar
+  readonly_fields = ('dealer', 'info', 'url',)
+  can_delete = False
+  extra = 0
+
+
 class DealerStatsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
   list_display = ('dealer', 'cars_count')
   list_filter = ('dealer__country',)
+
+
+class DealerCarsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
+  list_display = ('dealer', 'info', 'url')
+  list_filter = ('dealer__country', 'info')
 
 
 class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
@@ -42,6 +55,7 @@ class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
   list_filter = (
     'country',
     CarsCountFilter,
+    'dealercar__info',
   )
   fieldsets = [
     ('Company', {
@@ -71,9 +85,10 @@ class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
     # all fields are read-only
     return [e for fieldset in self.fieldsets for e in fieldset[1]['fields']]
 
-
-  inlines = (DealerStatsInline,)
+  inlines = (DealerStatsInline, DealerCarInline, )
   actions = (import_dealers,)
 
+
 admin.site.register(Dealer, DealerAdmin)
+admin.site.register(DealerCar, DealerCarsAdmin)
 admin.site.register(DealerStats, DealerStatsAdmin)

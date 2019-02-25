@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import humps
 import json
 import re
 
-from geopy import distance
 import scrapy
 
 from crawler.items import (
   DealerItem,
+  DealerCarItem,
   DealerStatsItem,
 )
 from dealers.models import AUTOSCOUT_URLS
@@ -72,7 +71,7 @@ class AutoscoutDealerStatsSpider(scrapy.Spider):
     super().__init__()
     self.dealers = dealers
     self.dealer_url_args = '?atype=C&kmto={}&fregfrom={}'.format(km_to,
-                                                            register_from)
+                                                                 register_from)
 
   def start_requests(self):
     for dealer in self.dealers:
@@ -92,3 +91,41 @@ class AutoscoutDealerStatsSpider(scrapy.Spider):
         dealer=response.meta['dealer'],
         cars_count=cars_count,
       )
+
+
+class AutoscoutDealerCarsSpider(scrapy.Spider):
+  name = 'autoscout_dealer_cars'
+  allowed_domains = ALLOWED_DOMAINS
+
+  def __init__(self, dealer, km_to=2500, register_from=2018):
+    super().__init__()
+    self.dealer = dealer
+    self.dealer_url_args = '?atype=C&kmto={}&fregfrom={}'.format(km_to,
+                                                                 register_from)
+
+  def start_requests(self, page=1):
+    url = '{}/{}&page={}'.format(self.dealer.vehicles_url, self.dealer_url_args,
+                                 page)
+    yield scrapy.Request(
+      url=url,
+      meta={'page': 1},
+      callback=self.parse_cars_list,
+    )
+
+  def parse_cars_list(self, response):
+    car_frames = response.xpath(
+      '//div[contains(@class, "cldt-summary-full-item-main")]')
+    for car_frame in car_frames:
+      url = car_frame.xpath(
+        './/a[contains(@data-item-name, "detail-page-link")]'
+        '/@href').extract_first()
+      info = car_frame.xpath('.//h2/text()').extract_first()
+      yield DealerCarItem(
+        dealer=self.dealer,
+        info=info,
+        url=url,
+      )
+
+    page = int(response.meta['page'])
+    self.logger.info("Page {}".format(page))
+    yield from self.start_requests(page + 1)
