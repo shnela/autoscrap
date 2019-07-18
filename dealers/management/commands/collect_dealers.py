@@ -1,7 +1,7 @@
+import logging
+
 from django.core.management.base import BaseCommand
 from crawler.spiders.autoscout import AutoscoutDealersSpider
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
 
 
 LOCALIZATIONS = {
@@ -16,12 +16,17 @@ from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
 
 runner = CrawlerRunner(get_project_settings())
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+  level=logging.INFO
+)
 
 
 @defer.inlineCallbacks
 def crawl():
   for localization, cities in LOCALIZATIONS.items():
     for city in cities:
+      logger.info('Collecting sellers from %s (%s)', city, localization)
       try:
         yield runner.crawl(AutoscoutDealersSpider,
                            localization=localization, city=city)

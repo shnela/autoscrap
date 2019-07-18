@@ -23,13 +23,13 @@ class DealerItem(DjangoItem):
   @property
   def instance(self):
     if self._instance is None:
-      modelargs = dict((k, self.get(k)) for k in self._values
-                       if k in self._model_fields)
+      modelargs = {k: self.get(k) for k in self._values
+                   if k in self._model_fields}
       try:
-        # if such Dealer exists, set created and updated fields
+        # if such Dealer exists, set cars_count and created
         dealer = Dealer.objects.get(id=self.get('id'))
         modelargs['created'] = dealer.created
-        modelargs['modified'] = dealer.modified
+        modelargs['cars_count'] = dealer.cars_count
       except Dealer.DoesNotExist:
         pass
       self._instance = self.django_model(**modelargs)

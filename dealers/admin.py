@@ -3,7 +3,7 @@ from django.contrib import admin
 from admintimestamps import TimestampedAdminMixin
 from djqscsv import write_csv
 
-from dealers.admin_filters import CarsCountFilter
+from dealers.admin_filters import CarsCountFilter, CarPrefixFilter
 from dealers.models import (
   Dealer,
   DealerCar,
@@ -34,13 +34,13 @@ class DealerStatsInline(admin.TabularInline):
 
 class DealerCarInline(admin.TabularInline):
   model = DealerCar
-  readonly_fields = ('dealer', 'info', 'url',)
+  readonly_fields = ('dealer', 'info', 'url', 'modified',)
   can_delete = False
   extra = 0
 
 
 class DealerStatsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
-  list_display = ('dealer', 'cars_count')
+  list_display = ('dealer', 'cars_count',)
   list_filter = ('dealer__country',)
 
 
@@ -49,13 +49,17 @@ class DealerCarsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
   list_filter = ('dealer__country', 'info')
 
 
-class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
-  list_display = ('company_name', 'cars_count', 'country', 'city', 'zip',)
+class DealerAdmin(admin.ModelAdmin):
+  list_display = (
+    'company_name', 'cars_count', 'country', 'city', 'zip', 'created',
+    'modified',
+  )
   search_fields = ('company_name', 'city', 'zip',)
   list_filter = (
     'country',
+    'created',
     CarsCountFilter,
-    'dealercar__info',
+    CarPrefixFilter,
   )
   fieldsets = [
     ('Company', {
@@ -85,7 +89,7 @@ class DealerAdmin(TimestampedAdminMixin, admin.ModelAdmin):
     # all fields are read-only
     return [e for fieldset in self.fieldsets for e in fieldset[1]['fields']]
 
-  inlines = (DealerStatsInline, DealerCarInline, )
+  inlines = (DealerStatsInline, DealerCarInline,)
   actions = (import_dealers,)
 
 
