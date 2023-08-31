@@ -1,6 +1,5 @@
 from collections import namedtuple
 
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -58,7 +57,7 @@ class Dealer(TimeStampedModel):
   city = models.CharField(max_length=64)
   country = models.CharField(max_length=1, choices=COUNTRY_CHOICES)
   # autoscout json data
-  autoscout_data = JSONField()
+  autoscout_data = models.JSONField()
   # denormalized field of last created DealerStats
   cars_count = models.PositiveIntegerField(null=True, blank=True)
 

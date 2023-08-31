@@ -52,7 +52,7 @@ class AutoscoutDealersSpider(scrapy.Spider):
     )
 
   def parse_dealers_list(self, response):
-    json_data = json.loads(response.body_as_unicode())
+    json_data = json.loads(response.body)
     dealers_data = json_data['dealers']
     for dealer in dealers_data:
       yield DealerItem(dealer)
