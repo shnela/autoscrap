@@ -116,7 +116,7 @@ class AutoscoutDealerCarsSpider(scrapy.Spider):
       '//div[contains(@class, "dp-listing-item")]')
     for car_frame in car_frames:
       url = car_frame.xpath(
-        './/a[contains(@data-item-name, "dp-link")]'
+        './/a[contains(@class, "dp-link")]'
         '/@href').extract_first()
       info = car_frame.xpath('.//h2/text()').extract_first()
       yield DealerCarItem(

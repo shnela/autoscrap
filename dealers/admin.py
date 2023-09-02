@@ -1,6 +1,5 @@
 from django.contrib import admin
 
-# from admintimestamps import TimestampedAdminMixin
 # from djqscsv import write_csv
 
 from dealers.admin_filters import CarsCountFilter, CarPrefixFilter
@@ -39,14 +38,14 @@ class DealerCarInline(admin.TabularInline):
   extra = 0
 
 
-# class DealerStatsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
-#   list_display = ('dealer', 'cars_count',)
-#   list_filter = ('dealer__country',)
+class DealerStatsAdmin(admin.ModelAdmin):
+  list_display = ('dealer', 'cars_count',)
+  list_filter = ('dealer__country',)
 
 
-# class DealerCarsAdmin(TimestampedAdminMixin, admin.ModelAdmin):
-#   list_display = ('dealer', 'info', 'url')
-#   list_filter = ('dealer__country', 'info')
+class DealerCarsAdmin(admin.ModelAdmin):
+  list_display = ('dealer', 'info', 'url')
+  list_filter = ('dealer__country', 'info')
 
 
 class DealerAdmin(admin.ModelAdmin):
@@ -94,5 +93,5 @@ class DealerAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Dealer, DealerAdmin)
-# admin.site.register(DealerCar, DealerCarsAdmin)
-# admin.site.register(DealerStats, DealerStatsAdmin)
+admin.site.register(DealerCar, DealerCarsAdmin)
+admin.site.register(DealerStats, DealerStatsAdmin)
