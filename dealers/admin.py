@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-# from djqscsv import write_csv
+from djqscsv import write_csv
 
 from dealers.admin_filters import CarsCountFilter, CarPrefixFilter
 from dealers.models import (
@@ -10,18 +10,18 @@ from dealers.models import (
 )
 
 
-# def import_dealers(modeladmin, request, queryset):
-#   queryset = queryset.values(
-#     'company_name',
-#     'cars_count',
-#     'city',
-#     'country',
-#   )
-#   with open('out/dealers.csv', 'wb') as csv_file:
-#     write_csv(queryset, csv_file)
+def import_dealers(modeladmin, request, queryset):
+  queryset = queryset.values(
+    'company_name',
+    'cars_count',
+    'city',
+    'country',
+  )
+  with open('out/dealers.csv', 'wb') as csv_file:
+    write_csv(queryset, csv_file)
 
 
-# import_dealers.short_description = "Export dealers to csv file"
+import_dealers.short_description = "Export dealers to csv file"
 
 
 class DealerStatsInline(admin.TabularInline):
@@ -89,7 +89,7 @@ class DealerAdmin(admin.ModelAdmin):
     return [e for fieldset in self.fieldsets for e in fieldset[1]['fields']]
 
   inlines = (DealerStatsInline, DealerCarInline,)
-  # actions = (import_dealers,)
+  actions = (import_dealers,)
 
 
 admin.site.register(Dealer, DealerAdmin)
