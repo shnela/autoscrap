@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 from crawler.spiders.autoscout import AutoscoutDealerCarsSpider
 
 from twisted.internet import reactor, defer
@@ -12,7 +13,7 @@ runner = CrawlerRunner(get_project_settings())
 
 @defer.inlineCallbacks
 def crawl():
-  for dealer in Dealer.objects.filter(cars_count__isnull=False):
+  for dealer in Dealer.objects.filter(Q(cars_count__isnull=False) & Q(cars_count__gt=0)):
     try:
       yield runner.crawl(AutoscoutDealerCarsSpider, dealer=dealer)
     except Exception as err:

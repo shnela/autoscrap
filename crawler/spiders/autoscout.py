@@ -84,13 +84,12 @@ class AutoscoutDealerStatsSpider(scrapy.Spider):
   def parse(self, response):
     # parse dealer
     cars_count_str = response.xpath(
-      '//h1[contains(@class, "dp-list__title__count")]/text()').extract_first()
+      '//p[contains(@class, "dp-list__title__count")]/text()').extract_first()
     cars_count = int(re.match(r'\d+', cars_count_str).group())
-    if cars_count:
-      yield DealerStatsItem(
-        dealer=response.meta['dealer'],
-        cars_count=cars_count,
-      )
+    yield DealerStatsItem(
+      dealer=response.meta['dealer'],
+      cars_count=cars_count,
+    )
 
 
 class AutoscoutDealerCarsSpider(scrapy.Spider):
@@ -114,10 +113,10 @@ class AutoscoutDealerCarsSpider(scrapy.Spider):
 
   def parse_cars_list(self, response):
     car_frames = response.xpath(
-      '//div[contains(@class, "cldt-summary-full-item-main")]')
+      '//div[contains(@class, "dp-listing-item")]')
     for car_frame in car_frames:
       url = car_frame.xpath(
-        './/a[contains(@data-item-name, "detail-page-link")]'
+        './/a[contains(@data-item-name, "dp-link")]'
         '/@href').extract_first()
       info = car_frame.xpath('.//h2/text()').extract_first()
       yield DealerCarItem(

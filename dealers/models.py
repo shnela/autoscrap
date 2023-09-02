@@ -6,7 +6,7 @@ from django.dispatch import receiver
 
 from django_extensions.db.models import TimeStampedModel
 
-ITALY_CODE = 'I'
+ITALY_CODE = 'IT'
 FRANCE_CODE = 'F'
 GERMANY_CODE = 'D'
 COUNTRY_CHOICES = (
@@ -55,7 +55,7 @@ class Dealer(TimeStampedModel):
   company_name = models.CharField(max_length=128)
   zip = models.CharField(max_length=16)
   city = models.CharField(max_length=64)
-  country = models.CharField(max_length=1, choices=COUNTRY_CHOICES)
+  country = models.CharField(max_length=2, choices=COUNTRY_CHOICES)
   # autoscout json data
   autoscout_data = models.JSONField()
   # denormalized field of last created DealerStats

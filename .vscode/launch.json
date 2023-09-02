@@ -25,6 +25,28 @@
             ],
             "django": true,
             "justMyCode": true
+        },
+        {
+            "name": "Collect Stats",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "collect_dealers_stats"
+            ],
+            "django": true,
+            "justMyCode": true
+        },
+        {
+            "name": "Collect Cars",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "collect_dealers_cars"
+            ],
+            "django": true,
+            "justMyCode": true
         }
     ]
 }
