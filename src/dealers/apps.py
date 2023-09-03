@@ -1,5 +1,7 @@
-from django.apps import AppConfig
+from django.apps import (
+    AppConfig,
+)
 
 
 class DealersConfig(AppConfig):
-    name = 'dealers'
+    name = "dealers"
