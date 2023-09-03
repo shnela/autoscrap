@@ -9,7 +9,7 @@ from crawler.spiders.autoscout import (
 )
 
 LOCALIZATIONS = {
-    "I": [
+    "IT": [
         "Firenze",
         "Bologna",
         "Roma",
@@ -22,8 +22,8 @@ LOCALIZATIONS = {
         "Viareggio",
         "Pisa",
     ],
-    "F": ["Lyon", "Paris", "Bourg en Bresse", "Oyonax", "Annegy", "Chambery"],
-    "D": ["Berlin", "Mannheim"],
+    "FR": ["Lyon", "Paris", "Bourg en Bresse", "Oyonax", "Annegy", "Chambery"],
+    "DE": ["Berlin", "Mannheim"],
 }
 
 from scrapy.crawler import (

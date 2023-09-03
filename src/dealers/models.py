@@ -16,8 +16,8 @@ from django_extensions.db.models import (
 )
 
 ITALY_CODE = "IT"
-FRANCE_CODE = "F"
-GERMANY_CODE = "D"
+FRANCE_CODE = "FR"
+GERMANY_CODE = "DE"
 COUNTRY_CHOICES = (
     (ITALY_CODE, "Italy"),
     (FRANCE_CODE, "France"),

@@ -47,6 +47,7 @@ class DealerCarInline(admin.TabularInline):
         "dealer",
         "info",
         "url",
+        "created",
         "modified",
     )
     can_delete = False
@@ -57,6 +58,8 @@ class DealerStatsAdmin(admin.ModelAdmin):
     list_display = (
         "dealer",
         "cars_count",
+        "created",
+        "modified",
     )
     list_filter = ("dealer__country",)
 

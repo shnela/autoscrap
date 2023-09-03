@@ -21,6 +21,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         process = CrawlerProcess(get_project_settings())
-        dealers = Dealer.objects.all()
+        dealers = Dealer.objects.order_by("cars_count")  # nulls first
         process.crawl(AutoscoutDealerStatsSpider, dealers=dealers)
         process.start()
