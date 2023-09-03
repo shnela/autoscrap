@@ -14,3 +14,4 @@ class Command(BaseCommand):
     dealers = Dealer.objects.all()
     process.crawl(AutoscoutDealerStatsSpider, dealers=dealers)
     process.start()
+ 

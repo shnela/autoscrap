@@ -8,7 +8,7 @@
             "name": "Python: Django",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/src/manage.py",
             "args": [
                 "runserver"
             ],
@@ -19,7 +19,7 @@
             "name": "Collect Dealers",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/src/manage.py",
             "args": [
                 "collect_dealers"
             ],
@@ -30,7 +30,7 @@
             "name": "Collect Stats",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/src/manage.py",
             "args": [
                 "collect_dealers_stats"
             ],
@@ -41,7 +41,7 @@
             "name": "Collect Cars",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/src/manage.py",
             "args": [
                 "collect_dealers_cars"
             ],
