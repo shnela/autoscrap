@@ -9,7 +9,7 @@ click==8.1.7
 constantly==15.1.0
 cryptography==41.0.3
 cssselect==1.2.0
-Django==4.2.4
+Django==4.2.7
 django-extensions==3.2.3
 django-queryset-csv==1.1.0
 et-xmlfile==1.1.0
