@@ -5,6 +5,8 @@ from decimal import Decimal, InvalidOperation
 
 from django.utils.dateparse import parse_date, parse_datetime
 
+from offers.feature_inference import infer_from_autoscout_listing_details
+
 _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json"[^>]*>(?P<json>.+?)</script>',
     re.DOTALL,
@@ -141,7 +143,7 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
 
     listing_created_at = parse_datetime(listing_details.get("createdTimestampWithOffset") or "")
 
-    return {
+    base = {
         "source": "autoscout24",
         "external_listing_id": str(lid)[:64],
         "url": url[:1024],
@@ -191,3 +193,5 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "listing_created_at": listing_created_at,
         "raw_payload": listing_details,
     }
+    base.update(infer_from_autoscout_listing_details(listing_details))
+    return base

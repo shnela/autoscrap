@@ -6,6 +6,8 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from django.utils.dateparse import parse_datetime
 
+from offers.feature_inference import infer_from_otomoto_advert
+
 _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json"[^>]*>(?P<json>.+?)</script>',
     re.DOTALL,
@@ -144,7 +146,7 @@ def advert_to_car_offer_dict(advert):
 
     url = advert.get("url") or ""
 
-    return {
+    base = {
         "source": "otomoto",
         "external_listing_id": str(advert.get("id") or "")[:64],
         "public_slug": public_slug_from_url(url),
@@ -192,3 +194,5 @@ def advert_to_car_offer_dict(advert):
         "listing_updated_at": _parse_dt(advert.get("updatedAt")),
         "raw_payload": advert,
     }
+    base.update(infer_from_otomoto_advert(advert))
+    return base

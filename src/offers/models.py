@@ -7,6 +7,16 @@ class ListingSource(models.TextChoices):
     AUTOSCOUT24 = "autoscout24", "AutoScout24"
 
 
+class AudioSystem(models.TextChoices):
+    """Premium / infotainment audio tier (Volvo-oriented)."""
+
+    UNKNOWN = "", "Unknown / not set"
+    BOWERS_WILKINS = "bowers_wilkins", "Bowers & Wilkins"
+    HARMAN_KARDON = "harman_kardon", "Harman Kardon"
+    STANDARD = "standard", "Standard audio"
+    OTHER_PREMIUM = "other_premium", "Other premium"
+
+
 class CarOffer(TimeStampedModel):
     """Car listing from a supported marketplace (see ListingSource)."""
 
@@ -96,6 +106,71 @@ class CarOffer(TimeStampedModel):
 
     image_urls = models.JSONField(default=list, blank=True)
     main_features = models.JSONField(default=list, blank=True)
+
+    # --- Equipment & features (nullable = unknown; set True/False when parsed or edited) ---
+    # Drivetrain & chassis
+    feature_awd = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="All-wheel drive (e.g. V90 CC AWD vs FWD V90).",
+    )
+    feature_increased_clearance_off_road_mode = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Raised ground clearance and Off Road drive mode.",
+    )
+    feature_hill_descent_control = models.BooleanField(null=True, blank=True)
+    feature_rear_air_suspension = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Rear-only or four-corner adaptive air suspension with self-levelling at rear.",
+    )
+    # Safety & driver assistance
+    feature_pilot_assist = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Adaptive cruise + lane-keeping steering assist.",
+    )
+    feature_city_safety = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="AEB with pedestrian / cyclist / large animal detection.",
+    )
+    feature_cross_traffic_alert_reverse_brake = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Cross Traffic Alert with auto-brake when reversing.",
+    )
+    feature_surround_view_camera_360 = models.BooleanField(null=True, blank=True)
+    feature_front_rear_parking_sensors = models.BooleanField(null=True, blank=True)
+    # Comfort & interior
+    feature_panoramic_roof = models.BooleanField(null=True, blank=True)
+    feature_four_zone_climate = models.BooleanField(null=True, blank=True)
+    feature_power_tailgate = models.BooleanField(null=True, blank=True)
+    feature_remote_rear_seatback_release = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Release rear seatbacks from the cargo area.",
+    )
+    feature_folding_rear_headrests = models.BooleanField(null=True, blank=True)
+    # Audio & infotainment
+    audio_system = models.CharField(
+        max_length=32,
+        choices=AudioSystem.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Use model year + this to separate Sensus vs Google-based eras.",
+    )
+    feature_google_built_in_infotainment = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Google Maps, Assistant, Play Store built-in.",
+    )
+    # Volvo “luxury” touches
+    feature_wood_or_metal_inlays = models.BooleanField(null=True, blank=True)
+    feature_crystal_gear_selector = models.BooleanField(null=True, blank=True)
+    feature_ambient_lighting_package = models.BooleanField(null=True, blank=True)
 
     listing_created_at = models.DateTimeField(null=True, blank=True)
     listing_updated_at = models.DateTimeField(null=True, blank=True)

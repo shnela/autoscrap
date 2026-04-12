@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from offers.admin_filters import CarOfferFeatureFilters
 from offers.models import CarOffer
 
 
@@ -8,11 +9,13 @@ class CarOfferAdmin(admin.ModelAdmin):
     list_display = (
         "title",
         "source",
-        "external_listing_id",
-        "public_slug",
+        "year",
+        "audio_system",
+        "feature_awd",
+        "feature_panoramic_roof",
+        "feature_pilot_assist",
         "price_amount",
         "price_currency",
-        "year",
         "mileage_km",
         "make",
         "model",
@@ -20,7 +23,19 @@ class CarOfferAdmin(admin.ModelAdmin):
         "listing_created_at",
         "modified",
     )
-    list_filter = ("source", "make", "fuel_type", "gearbox", "seller_type", "year")
+    list_filter = (
+        "source",
+        "year",
+        "audio_system",
+        "make",
+        "fuel_type",
+        "gearbox",
+        "transmission",
+        "drive_train",
+        "body_type",
+        "seller_type",
+        *CarOfferFeatureFilters,
+    )
     search_fields = (
         "title",
         "external_listing_id",
@@ -32,3 +47,175 @@ class CarOfferAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("created", "modified", "raw_payload")
     date_hierarchy = "listing_created_at"
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "source",
+                    "external_listing_id",
+                    "public_slug",
+                    "url",
+                    "title",
+                    "description",
+                    "year",
+                    "listing_created_at",
+                    "listing_updated_at",
+                )
+            },
+        ),
+        (
+            "Price",
+            {
+                "fields": (
+                    "price_amount",
+                    "price_currency",
+                    "price_display",
+                    "price_labels",
+                    "price_drop",
+                    "price_tax_deductible",
+                )
+            },
+        ),
+        (
+            "Vehicle",
+            {
+                "fields": (
+                    "make",
+                    "make_slug",
+                    "model",
+                    "model_slug",
+                    "model_version",
+                    "variant",
+                    "mileage_km",
+                    "vin",
+                    "fuel_type",
+                    "gearbox",
+                    "transmission",
+                    "drive_train",
+                    "body_type",
+                    "color",
+                    "paint_type",
+                    "doors",
+                    "seats",
+                    "engine_cc",
+                    "engine_power_hp",
+                    "engine_power_kw",
+                    "gears",
+                    "co2_g_km",
+                    "fuel_consumption_l100km_combined",
+                    "first_registration_raw",
+                    "first_registration_date",
+                    "date_registration",
+                    "country_origin",
+                )
+            },
+        ),
+        (
+            "History & condition",
+            {
+                "fields": (
+                    "damaged",
+                    "had_accident",
+                    "no_accident",
+                    "registered",
+                    "service_record",
+                    "has_full_service_history",
+                    "non_smoking",
+                    "previous_owners",
+                    "next_inspection_raw",
+                    "vat",
+                    "new_used",
+                )
+            },
+        ),
+        (
+            "Drivetrain & chassis (features)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "feature_awd",
+                    "feature_increased_clearance_off_road_mode",
+                    "feature_hill_descent_control",
+                    "feature_rear_air_suspension",
+                ),
+            },
+        ),
+        (
+            "Safety & assistance (features)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "feature_pilot_assist",
+                    "feature_city_safety",
+                    "feature_cross_traffic_alert_reverse_brake",
+                    "feature_surround_view_camera_360",
+                    "feature_front_rear_parking_sensors",
+                ),
+            },
+        ),
+        (
+            "Comfort & interior (features)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "feature_panoramic_roof",
+                    "feature_four_zone_climate",
+                    "feature_power_tailgate",
+                    "feature_remote_rear_seatback_release",
+                    "feature_folding_rear_headrests",
+                ),
+            },
+        ),
+        (
+            "Audio & infotainment (features)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "audio_system",
+                    "feature_google_built_in_infotainment",
+                ),
+            },
+        ),
+        (
+            "Luxury trim (features)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "feature_wood_or_metal_inlays",
+                    "feature_crystal_gear_selector",
+                    "feature_ambient_lighting_package",
+                ),
+            },
+        ),
+        (
+            "Seller & media",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "seller_type",
+                    "seller_name",
+                    "seller_contact",
+                    "seller_otomoto_id",
+                    "seller_uuid",
+                    "seller_url",
+                    "seller_website",
+                    "seller_as24_id",
+                    "seller_sell_id",
+                    "seller_is_dealer",
+                    "seller_links",
+                    "seller_location",
+                    "image_urls",
+                    "main_features",
+                )
+            },
+        ),
+        (
+            "Raw & timestamps",
+            {
+                "classes": ("collapse",),
+                "fields": ("raw_payload", "created", "modified"),
+            },
+        ),
+    )
