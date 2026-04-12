@@ -7,6 +7,9 @@ from dealers.models import (
     DealerCar,
     DealerStats,
 )
+from offers.models import (
+    CarOffer,
+)
 
 
 class DealerItem(DjangoItem):
@@ -44,3 +47,25 @@ class DealerStatsItem(DjangoItem):
 
 class DealerCarItem(DjangoItem):
     django_model = DealerCar
+
+
+class CarOfferItem(DjangoItem):
+    django_model = CarOffer
+
+    def save(self, *args, **kwargs):
+        oid = self.get("otomoto_ad_id")
+        if not oid:
+            raise ValueError("CarOfferItem requires otomoto_ad_id")
+
+        skip = {"id", "created", "modified", "otomoto_ad_id"}
+        defaults = {}
+        for f in CarOffer._meta.fields:
+            name = f.name
+            if name in skip:
+                continue
+            if name in self:
+                defaults[name] = self[name]
+
+        obj, _ = CarOffer.objects.update_or_create(otomoto_ad_id=oid, defaults=defaults)
+        self._instance = obj
+        return obj

@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
+
+import django
+from django.apps import apps as django_apps
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "autoscrap.settings")
+if not django_apps.ready:
+    django.setup()
 
 # Scrapy settings for crawler project
 #
