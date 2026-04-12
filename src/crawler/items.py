@@ -8,6 +8,7 @@ from dealers.models import (
     DealerStats,
 )
 from offers.models import (
+    AutoScout24Offer,
     CarOffer,
 )
 
@@ -67,5 +68,27 @@ class CarOfferItem(DjangoItem):
                 defaults[name] = self[name]
 
         obj, _ = CarOffer.objects.update_or_create(otomoto_ad_id=oid, defaults=defaults)
+        self._instance = obj
+        return obj
+
+
+class AutoScout24OfferItem(DjangoItem):
+    django_model = AutoScout24Offer
+
+    def save(self, *args, **kwargs):
+        guid = self.get("listing_guid")
+        if not guid:
+            raise ValueError("AutoScout24OfferItem requires listing_guid")
+
+        skip = {"id", "created", "modified", "listing_guid"}
+        defaults = {}
+        for f in AutoScout24Offer._meta.fields:
+            name = f.name
+            if name in skip:
+                continue
+            if name in self:
+                defaults[name] = self[name]
+
+        obj, _ = AutoScout24Offer.objects.update_or_create(listing_guid=guid, defaults=defaults)
         self._instance = obj
         return obj
