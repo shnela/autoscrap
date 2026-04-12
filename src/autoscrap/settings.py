@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # custom
     "dealers",
+    "offers",
 ]
 
 MIDDLEWARE = [
