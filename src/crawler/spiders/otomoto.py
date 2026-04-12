@@ -91,7 +91,7 @@ class OtomotoOffersSpider(scrapy.Spider):
             return
 
         payload = advert_to_car_offer_dict(advert)
-        if not payload.get("otomoto_ad_id"):
+        if not payload.get("external_listing_id"):
             self.logger.warning("Skipping offer without id: %s", response.url)
             return
 

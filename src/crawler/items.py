@@ -8,7 +8,6 @@ from dealers.models import (
     DealerStats,
 )
 from offers.models import (
-    AutoScout24Offer,
     CarOffer,
 )
 
@@ -54,11 +53,12 @@ class CarOfferItem(DjangoItem):
     django_model = CarOffer
 
     def save(self, *args, **kwargs):
-        oid = self.get("otomoto_ad_id")
-        if not oid:
-            raise ValueError("CarOfferItem requires otomoto_ad_id")
+        src = self.get("source")
+        eid = self.get("external_listing_id")
+        if not src or not eid:
+            raise ValueError("CarOfferItem requires source and external_listing_id")
 
-        skip = {"id", "created", "modified", "otomoto_ad_id"}
+        skip = {"id", "created", "modified", "source", "external_listing_id"}
         defaults = {}
         for f in CarOffer._meta.fields:
             name = f.name
@@ -67,28 +67,10 @@ class CarOfferItem(DjangoItem):
             if name in self:
                 defaults[name] = self[name]
 
-        obj, _ = CarOffer.objects.update_or_create(otomoto_ad_id=oid, defaults=defaults)
-        self._instance = obj
-        return obj
-
-
-class AutoScout24OfferItem(DjangoItem):
-    django_model = AutoScout24Offer
-
-    def save(self, *args, **kwargs):
-        guid = self.get("listing_guid")
-        if not guid:
-            raise ValueError("AutoScout24OfferItem requires listing_guid")
-
-        skip = {"id", "created", "modified", "listing_guid"}
-        defaults = {}
-        for f in AutoScout24Offer._meta.fields:
-            name = f.name
-            if name in skip:
-                continue
-            if name in self:
-                defaults[name] = self[name]
-
-        obj, _ = AutoScout24Offer.objects.update_or_create(listing_guid=guid, defaults=defaults)
+        obj, _ = CarOffer.objects.update_or_create(
+            source=src,
+            external_listing_id=eid,
+            defaults=defaults,
+        )
         self._instance = obj
         return obj

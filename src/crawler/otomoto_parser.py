@@ -107,7 +107,7 @@ def _clean_vin(raw):
 
 
 def advert_to_car_offer_dict(advert):
-    """Map Otomoto `advert` object from __NEXT_DATA__ to CarOffer field names."""
+    """Map Otomoto `advert` object from __NEXT_DATA__ to unified CarOffer field names."""
     pd = advert.get("parametersDict") or {}
 
     def p(key):
@@ -145,7 +145,8 @@ def advert_to_car_offer_dict(advert):
     url = advert.get("url") or ""
 
     return {
-        "otomoto_ad_id": str(advert.get("id") or ""),
+        "source": "otomoto",
+        "external_listing_id": str(advert.get("id") or "")[:64],
         "public_slug": public_slug_from_url(url),
         "url": url,
         "title": (advert.get("title") or "")[:512],
@@ -169,7 +170,7 @@ def advert_to_car_offer_dict(advert):
         "make_slug": (make_val or "")[:128],
         "model": (model_label or "")[:128],
         "model_slug": (model_val or "")[:128],
-        "vin": _clean_vin(vin_raw)[:32],
+        "vin": _clean_vin(vin_raw)[:17],
         "country_origin": (p("country_origin")[1] or "")[:128],
         "date_registration": (reg_label or "")[:128],
         "damaged": _bool_from_otomoto(p("damaged")[0]),
@@ -187,7 +188,7 @@ def advert_to_car_offer_dict(advert):
         "seller_location": location,
         "image_urls": image_urls,
         "main_features": list(advert.get("mainFeatures") or []),
-        "otomoto_created_at": _parse_dt(advert.get("createdAt")),
-        "otomoto_updated_at": _parse_dt(advert.get("updatedAt")),
-        "raw_advert": advert,
+        "listing_created_at": _parse_dt(advert.get("createdAt")),
+        "listing_updated_at": _parse_dt(advert.get("updatedAt")),
+        "raw_payload": advert,
     }

@@ -8,7 +8,7 @@ from crawler.autoscout24_parser import (
     listing_details_to_offer_dict,
     parse_listing_page,
 )
-from crawler.items import AutoScout24OfferItem
+from crawler.items import CarOfferItem
 
 DEFAULT_LISTING_URL = (
     "https://www.autoscout24.com/lst/volvo/v90-cross-country"
@@ -93,8 +93,8 @@ class Autoscout24OffersSpider(scrapy.Spider):
         marketplace_domain = host.split(":")[0]
 
         payload = listing_details_to_offer_dict(ld, marketplace_domain=marketplace_domain)
-        if not payload.get("listing_guid"):
+        if not payload.get("external_listing_id"):
             self.logger.warning("Skipping offer without id: %s", response.url)
             return
 
-        yield AutoScout24OfferItem(**payload)
+        yield CarOfferItem(**payload)

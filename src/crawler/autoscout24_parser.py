@@ -67,7 +67,7 @@ def parse_listing_page(html):
 
 
 def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout24.com"):
-    """Map `listingDetails` from offer page __NEXT_DATA__ to AutoScout24Offer fields."""
+    """Map `listingDetails` from offer page __NEXT_DATA__ to unified CarOffer fields."""
     if not listing_details:
         return {}
 
@@ -142,7 +142,8 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
     listing_created_at = parse_datetime(listing_details.get("createdTimestampWithOffset") or "")
 
     return {
-        "listing_guid": str(lid)[:64],
+        "source": "autoscout24",
+        "external_listing_id": str(lid)[:64],
         "url": url[:1024],
         "title": title or (listing_details.get("id") or "AutoScout24")[:512],
         "description": html_to_text(listing_details.get("description") or ""),
@@ -153,7 +154,7 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "mileage_km": mileage_km,
         "first_registration_raw": (vehicle.get("firstRegistrationDate") or "")[:32],
         "first_registration_date": first_registration_date,
-        "production_year": _int_or_none(vehicle.get("productionYear")),
+        "year": _int_or_none(vehicle.get("productionYear")),
         "fuel_type": fuel_type,
         "transmission": (vehicle.get("transmissionType") or "")[:64],
         "drive_train": (vehicle.get("driveTrain") or "")[:64],
@@ -179,14 +180,14 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "previous_owners": prev_owners,
         "next_inspection_raw": (vehicle.get("nextVehicleSafetyInspection") or "")[:32],
         "seller_type": (seller.get("type") or "")[:32],
-        "seller_company": (seller.get("companyName") or "")[:256],
+        "seller_name": (seller.get("companyName") or "")[:256],
         "seller_contact": (seller.get("contactName") or "")[:256],
         "seller_as24_id": str(seller.get("id") or "")[:32],
         "seller_sell_id": str(seller.get("sellId") or "")[:32],
         "seller_is_dealer": seller.get("isDealer"),
         "seller_links": seller_links,
-        "location": loc,
+        "seller_location": loc,
         "image_urls": image_urls[:60],
         "listing_created_at": listing_created_at,
-        "raw_listing": listing_details,
+        "raw_payload": listing_details,
     }
