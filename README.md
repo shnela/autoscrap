@@ -39,6 +39,19 @@ Django + Scrapy stack for scraping car listings (e.g. **Otomoto**, **AutoScout24
    python manage.py runserver
    ```
 
+## Plots (price vs mileage, color = year)
+
+From `src/`, writes a PNG (scatter: **mileage_km** on X, **price in PLN** on Y, point color = **year**; markers = **audio**: ○ standard / unknown / other premium, □ Harman Kardon, ▲ Bowers & Wilkins), plus a **trend curve**. Default `--trend median_bin` follows the cloud (median PLN in mileage quantile bins, smoothed). Other fits: `--trend loglog` (power law), `--trend poly2` (quadratic), `--trend inverse` (a + b/mileage). Use `--trend-bins N` with `median_bin`. Only rows with convertible PLN price and non-null mileage/year are included.
+
+```bash
+cd src
+uv run python manage.py plot_price_mileage_year
+```
+
+Default output: **`out/price_by_mileage_year.png`** at the **repository root** (not the shell working directory). Relative `-o` paths are also resolved under `out/` there.
+
+Useful flags: `-o other.png` (→ `out/other.png` in repo root), `-o /abs/path.png`, `--source otomoto`, `--min-year 2018`, `--max-year 2023`, `--log-y`.
+
 ## Scrapy crawler
 
 Scrapy project config lives next to Django under `src/` (`scrapy.cfg` → `crawler.settings`). The crawler uses Django items and **`SaveItemPipeline`**, which persists offers through the ORM.

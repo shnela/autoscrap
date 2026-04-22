@@ -37,6 +37,7 @@ dependencies = [
     "itemloaders==1.1.0",
     "jmespath==1.0.1",
     "lxml==4.9.3",
+    "matplotlib>=3.10.8",
     "mypy-extensions==1.0.0",
     "openpyxl==3.1.2",
     "packaging==23.1",
