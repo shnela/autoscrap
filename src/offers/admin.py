@@ -1,11 +1,25 @@
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.contrib import admin
+from django.db.models import Prefetch
 
 from offers.admin_filters import (
     CarOfferFeatureFilters,
     MileageFromFilter,
     MileageToFilter,
 )
-from offers.models import CarOffer
+from offers.models import CarOffer, CarOfferPriceHistory
+
+
+def _format_pln_delta(delta: Decimal | None) -> str | None:
+    if delta is None:
+        return None
+    rounded = delta.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    if rounded == 0:
+        return "0 PLN"
+    sign = "+" if rounded > 0 else ""
+    abs_part = format(abs(rounded), ",.0f").replace(",", " ")
+    return f"{sign}{abs_part} PLN"
 
 
 @admin.register(CarOffer)
@@ -28,6 +42,8 @@ class CarOfferAdmin(admin.ModelAdmin):
         "is_first_owner",
         "service_record",
         "price_pln_display",
+        "price_change_since_first_display",
+        "price_change_last_display",
         "mileage_km",
         "vin",
         "make",
@@ -69,6 +85,13 @@ class CarOfferAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("created", "modified", "raw_payload")
     date_hierarchy = "listing_created_at"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        ordered = CarOfferPriceHistory.objects.order_by("captured_at", "id")
+        return qs.prefetch_related(
+            Prefetch("price_history", queryset=ordered, to_attr="_price_history_chronological"),
+        )
 
     fieldsets = (
         (
@@ -259,3 +282,51 @@ class CarOfferAdmin(admin.ModelAdmin):
         if obj.price_pln is None:
             return None
         return f"{obj.price_pln}"
+
+    @admin.display(description="Zmiana od początku (PLN)")
+    def price_change_since_first_display(self, obj):
+        hist = getattr(obj, "_price_history_chronological", None)
+        if not hist:
+            return None
+        current = obj.price_pln
+        first_pln = hist[0].price_pln
+        if current is None or first_pln is None:
+            return None
+        return _format_pln_delta(current - first_pln)
+
+    @admin.display(description="Ostatnia zmiana (PLN)")
+    def price_change_last_display(self, obj):
+        hist = getattr(obj, "_price_history_chronological", None)
+        if not hist or len(hist) < 2:
+            return None
+        newer = hist[-1].price_pln
+        older = hist[-2].price_pln
+        if newer is None or older is None:
+            return None
+        return _format_pln_delta(newer - older)
+
+
+@admin.register(CarOfferPriceHistory)
+class CarOfferPriceHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        "offer",
+        "price_amount",
+        "price_currency",
+        "price_pln",
+        "listing_updated_at",
+        "captured_at",
+        "created",
+    )
+    list_filter = ("price_currency", "captured_at")
+    search_fields = (
+        "offer__title",
+        "offer__external_listing_id",
+        "offer__public_slug",
+    )
+    autocomplete_fields = ("offer",)
+    readonly_fields = ("created", "modified")
+    ordering = ("-captured_at", "-id")
+    date_hierarchy = "captured_at"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("offer")

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django_extensions.db.models import TimeStampedModel
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
@@ -7,6 +8,20 @@ EXCHANGE_RATES_TO_PLN = {
     "PLN": Decimal("1.00"),
     "EUR": Decimal("4.30"),
 }
+
+
+def convert_price_to_pln(amount, currency):
+    if amount is None:
+        return None
+    normalized_currency = (currency or "PLN").upper()
+    rate = EXCHANGE_RATES_TO_PLN.get(normalized_currency)
+    if rate is None:
+        return None
+    try:
+        parsed_amount = Decimal(amount)
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return (parsed_amount * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 class ListingSource(models.TextChoices):
@@ -224,16 +239,54 @@ class CarOffer(TimeStampedModel):
     def __str__(self):
         return "{} [{}] {}".format(self.title, self.source, self.external_listing_id)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self._create_price_history_entry_if_needed()
+
+    def _create_price_history_entry_if_needed(self):
+        if self.price_amount is None:
+            return
+
+        price_pln = self.price_pln
+        latest_entry = self.price_history.order_by("-captured_at").first()
+        if (
+            latest_entry
+            and latest_entry.price_amount == self.price_amount
+            and latest_entry.price_currency == self.price_currency
+        ):
+            return
+
+        CarOfferPriceHistory.objects.create(
+            offer=self,
+            price_amount=self.price_amount,
+            price_currency=self.price_currency,
+            price_pln=price_pln,
+            listing_updated_at=self.listing_updated_at,
+            captured_at=timezone.now(),
+        )
+
     @property
     def price_pln(self):
-        if self.price_amount is None:
-            return None
-        currency = (self.price_currency or "PLN").upper()
-        rate = EXCHANGE_RATES_TO_PLN.get(currency)
-        if rate is None:
-            return None
-        try:
-            amount = Decimal(self.price_amount)
-        except (InvalidOperation, TypeError, ValueError):
-            return None
-        return (amount * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return convert_price_to_pln(self.price_amount, self.price_currency)
+
+
+class CarOfferPriceHistory(TimeStampedModel):
+    offer = models.ForeignKey(
+        CarOffer,
+        on_delete=models.CASCADE,
+        related_name="price_history",
+    )
+    price_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    price_currency = models.CharField(max_length=8, default="PLN")
+    price_pln = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    listing_updated_at = models.DateTimeField(null=True, blank=True)
+    captured_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ("-captured_at", "-created")
+        indexes = [
+            models.Index(fields=("offer", "-captured_at")),
+        ]
+
+    def __str__(self):
+        return "{} {} ({})".format(self.price_amount, self.price_currency, self.offer_id)
