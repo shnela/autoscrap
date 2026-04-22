@@ -16,12 +16,10 @@ DEFAULT_LISTING_URL = (
     "&search%5Bfilter_enum_no_accident%5D=1"
     "&search%5Bfilter_enum_registered%5D=1"
     "&search%5Bfilter_enum_service_record%5D=1"
-    "&search%5Bfilter_float_year%3Ato%5D=2023"
     "&search%5Bmake_model_generation%5D%5B0%5D=volvo%7Cv60"
     "&search%5Bmake_model_generation%5D%5B1%5D=volvo%7Cv60-cross-country"
     "&search%5Bmake_model_generation%5D%5B2%5D=volvo%7Cv90"
     "&search%5Bmake_model_generation%5D%5B3%5D=volvo%7Cv90-cross-country"
-    "&search_id=1774859477808588438"
 )
 
 
