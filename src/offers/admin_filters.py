@@ -1,5 +1,62 @@
 from django.contrib import admin
 
+_MILEAGE_STEPS_KM = (
+    0,
+    10_000,
+    25_000,
+    50_000,
+    75_000,
+    100_000,
+    125_000,
+    150_000,
+    175_000,
+    200_000,
+    250_000,
+    300_000,
+    400_000,
+    500_000,
+)
+
+
+def _mileage_lookups():
+    return tuple((str(n), f"{n:,}".replace(",", " ") + " km") for n in _MILEAGE_STEPS_KM)
+
+
+class MileageFromFilter(admin.SimpleListFilter):
+    title = "Przebieg od (km)"
+    parameter_name = "mileage_from"
+
+    def lookups(self, request, model_admin):
+        return _mileage_lookups()
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if not v:
+            return queryset
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            return queryset
+        return queryset.filter(mileage_km__gte=n)
+
+
+class MileageToFilter(admin.SimpleListFilter):
+    title = "Przebieg do (km)"
+    parameter_name = "mileage_to"
+
+    def lookups(self, request, model_admin):
+        return _mileage_lookups()
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if not v:
+            return queryset
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            return queryset
+        return queryset.filter(mileage_km__lte=n)
+
 
 class NullableBooleanListFilter(admin.SimpleListFilter):
     """Filter nullable BooleanField: Yes / No / Unknown (NULL)."""
@@ -42,6 +99,7 @@ CarOfferFeatureFilters = [
     _nb_filter("Increased clearance & Off-Road mode", "feature_increased_clearance_off_road_mode"),
     _nb_filter("Hill Descent Control", "feature_hill_descent_control"),
     _nb_filter("Rear air suspension (adaptive / self-levelling)", "feature_rear_air_suspension"),
+    _nb_filter("Pneumatic / air suspension (PL+EN)", "feature_pneumatic_suspension"),
     _nb_filter("Pilot Assist", "feature_pilot_assist"),
     _nb_filter("City Safety (AEB)", "feature_city_safety"),
     _nb_filter("Cross Traffic Alert + auto-brake (reverse)", "feature_cross_traffic_alert_reverse_brake"),

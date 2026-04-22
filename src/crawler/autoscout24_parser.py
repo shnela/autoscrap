@@ -12,6 +12,7 @@ _NEXT_DATA_RE = re.compile(
     re.DOTALL,
 )
 _TAG_RE = re.compile(r"<[^>]+>")
+_ENGINE_BADGE_RE = re.compile(r"\b([TDB][2-8])\b", re.I)
 
 
 def extract_next_data(html):
@@ -53,6 +54,101 @@ def _clean_vin(raw):
     if len(s) == 17 and re.match(r"^[A-HJ-NPR-Z0-9]{17}$", s):
         return s
     return ""
+
+
+def _text_value(val):
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    if isinstance(val, dict):
+        for key in ("formatted", "label", "value", "name"):
+            v = val.get(key)
+            if v:
+                return str(v)
+    return str(val)
+
+
+def _upholstery_color_from_vehicle(vehicle):
+    for key in (
+        "upholsteryColor",
+        "upholsteryColour",
+        "interiorColor",
+        "interiorColour",
+        "seatColor",
+        "seatColour",
+    ):
+        txt = _text_value(vehicle.get(key)).strip()
+        if txt:
+            return txt[:64]
+    return ""
+
+
+def _engine_model_from_vehicle(vehicle):
+    for key in (
+        "engineModel",
+        "engineCode",
+        "engineType",
+        "engineVariant",
+        "motorCode",
+    ):
+        txt = _text_value(vehicle.get(key)).strip()
+        if txt:
+            return txt[:128]
+    return ""
+
+
+def _extract_engine_badge(*texts):
+    for text in texts:
+        if not text:
+            continue
+        m = _ENGINE_BADGE_RE.search(str(text).upper())
+        if m:
+            return m.group(1).upper()
+    return ""
+
+
+def _wheel_size_from_vehicle(vehicle):
+    def _normalize_wheel_size(raw):
+        if not raw:
+            return ""
+        s = str(raw).strip()
+        m = re.search(r"\b(1[4-9]|2[0-4])\b", s)
+        if not m:
+            m = re.search(r"\b(\d{2})[\"′”]?\b", s)
+        if m:
+            return '{}"'.format(int(m.group(1)))
+        return ""
+
+    for key in (
+        "wheelSize",
+        "rimSize",
+        "wheelRimSize",
+        "tyreSize",
+    ):
+        txt = _text_value(vehicle.get(key)).strip()
+        if txt:
+            normalized = _normalize_wheel_size(txt)
+            if normalized:
+                return normalized
+    return ""
+
+
+def _listing_location_text(location):
+    if not isinstance(location, dict):
+        return ""
+    parts = []
+    for key in ("city", "zip", "state", "countryCode"):
+        value = location.get(key)
+        if value:
+            parts.append(str(value).strip())
+    if not parts:
+        for key in ("addressLine1", "address"):
+            value = location.get(key)
+            if value:
+                parts.append(str(value).strip())
+                break
+    return ", ".join(p for p in parts if p)[:256]
 
 
 def parse_listing_page(html):
@@ -158,10 +254,23 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "first_registration_date": first_registration_date,
         "year": _int_or_none(vehicle.get("productionYear")),
         "fuel_type": fuel_type,
+        "wheel_size": _wheel_size_from_vehicle(vehicle),
+        "engine_model": (
+            _engine_model_from_vehicle(vehicle)
+            or _extract_engine_badge(
+                title,
+                vehicle.get("modelVersionInput"),
+                vehicle.get("variant"),
+                listing_details.get("description"),
+                listing_details.get("url"),
+                listing_details.get("webPage"),
+            )
+        ),
         "transmission": (vehicle.get("transmissionType") or "")[:64],
         "drive_train": (vehicle.get("driveTrain") or "")[:64],
         "body_type": (vehicle.get("bodyType") or "")[:64],
         "color": (vehicle.get("bodyColor") or "")[:64],
+        "upholstery_color": _upholstery_color_from_vehicle(vehicle),
         "paint_type": (vehicle.get("paintType") or "")[:64],
         "doors": _int_or_none(vehicle.get("numberOfDoors")),
         "seats": _int_or_none(vehicle.get("numberOfSeats")),
@@ -188,6 +297,7 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "seller_sell_id": str(seller.get("sellId") or "")[:32],
         "seller_is_dealer": seller.get("isDealer"),
         "seller_links": seller_links,
+        "listing_location": _listing_location_text(loc),
         "seller_location": loc,
         "image_urls": image_urls[:60],
         "listing_created_at": listing_created_at,

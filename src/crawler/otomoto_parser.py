@@ -13,6 +13,7 @@ _NEXT_DATA_RE = re.compile(
     re.DOTALL,
 )
 _PUBLIC_SLUG_RE = re.compile(r"-(ID[a-zA-Z0-9]+)\.html")
+_ENGINE_BADGE_RE = re.compile(r"\b([TDB][2-8])\b", re.I)
 
 
 def extract_next_data(html):
@@ -99,6 +100,135 @@ def _parse_dt(value):
     return parse_datetime(str(value))
 
 
+def _upholstery_color_from_parameters(parameters_dict):
+    """Try common Otomoto parameter keys/labels for upholstery/interior color."""
+    if not parameters_dict:
+        return ""
+    direct_keys = (
+        "upholstery_color",
+        "interior_color",
+        "color_upholstery",
+        "tapicerka_kolor",
+    )
+    for key in direct_keys:
+        _raw, label = _param_raw(parameters_dict, key)
+        if label:
+            return str(label)[:64]
+    for key, entry in parameters_dict.items():
+        entry_label = str(entry.get("label") or "").lower()
+        key_l = str(key or "").lower()
+        if any(token in key_l or token in entry_label for token in ("upholstery", "interior", "tapicer")):
+            values = entry.get("values") or []
+            if values and isinstance(values[0], dict):
+                lbl = values[0].get("label")
+                if lbl:
+                    return str(lbl)[:64]
+    return ""
+
+
+def _engine_model_from_parameters(parameters_dict):
+    if not parameters_dict:
+        return ""
+    direct_keys = (
+        "engine_model",
+        "engine_version",
+        "engine_code",
+        "silnik_model",
+        "kod_silnika",
+    )
+    for key in direct_keys:
+        _raw, label = _param_raw(parameters_dict, key)
+        if label:
+            return str(label)[:128]
+    skip_keys = {
+        "engine_power",
+        "engine_capacity",
+        "fuel_type",
+    }
+    for key, entry in parameters_dict.items():
+        entry_label = str(entry.get("label") or "").lower()
+        key_l = str(key or "").lower()
+        if key_l in skip_keys:
+            continue
+        if not any(token in key_l or token in entry_label for token in ("model", "code", "kod", "version", "wariant")):
+            continue
+        if any(token in key_l or token in entry_label for token in ("engine", "silnik", "motor")):
+            values = entry.get("values") or []
+            if values and isinstance(values[0], dict):
+                lbl = values[0].get("label")
+                if lbl and lbl not in ("Diesel", "Benzyna", "Elektryczny", "Hybryda"):
+                    return str(lbl)[:128]
+    return ""
+
+
+def _extract_engine_badge(*texts):
+    for text in texts:
+        if not text:
+            continue
+        m = _ENGINE_BADGE_RE.search(str(text).upper())
+        if m:
+            return m.group(1).upper()
+    return ""
+
+
+def _wheel_size_from_parameters(parameters_dict):
+    def _normalize_wheel_size(raw):
+        if not raw:
+            return ""
+        s = str(raw).strip()
+        m = re.search(r"\b(1[4-9]|2[0-4])\b", s)
+        if not m:
+            m = re.search(r"\b(\d{2})[\"′”]?\b", s)
+        if m:
+            return '{}"'.format(int(m.group(1)))
+        return ""
+
+    if not parameters_dict:
+        return ""
+    direct_keys = (
+        "rim_size",
+        "wheel_size",
+        "felgi",
+        "rozmiar_felg",
+        "wheel_rim_size",
+    )
+    for key in direct_keys:
+        _raw, label = _param_raw(parameters_dict, key)
+        if label:
+            normalized = _normalize_wheel_size(label)
+            if normalized:
+                return normalized
+    for key, entry in parameters_dict.items():
+        key_l = str(key or "").lower()
+        entry_label = str(entry.get("label") or "").lower()
+        if any(t in key_l or t in entry_label for t in ("wheel", "rim", "felg", "opon")):
+            values = entry.get("values") or []
+            if values and isinstance(values[0], dict):
+                lbl = (values[0].get("label") or "").strip()
+                if lbl:
+                    normalized = _normalize_wheel_size(lbl)
+                    if normalized:
+                        return normalized
+    return ""
+
+
+def _listing_location_from_seller_location(location):
+    if not isinstance(location, dict):
+        return ""
+    parts = []
+    for key in ("city", "region", "province", "country"):
+        value = location.get(key)
+        if value:
+            parts.append(str(value).strip())
+    if not parts:
+        for key in ("address", "name"):
+            value = location.get(key)
+            if value:
+                parts.append(str(value).strip())
+                break
+    return ", ".join(p for p in parts if p)[:256]
+
+
 def _clean_vin(raw):
     if not raw:
         return ""
@@ -159,13 +289,25 @@ def advert_to_car_offer_dict(advert):
         "price_drop": advert.get("priceDrop"),
         "year": _int_from_value(year_raw),
         "mileage_km": _int_from_value(mileage_raw),
+        "engine_model": (
+            _engine_model_from_parameters(pd)
+            or _extract_engine_badge(
+                advert.get("title"),
+                advert.get("description"),
+                p("model")[1],
+                p("model")[0],
+                advert.get("url"),
+            )
+        ),
         "engine_cc": _int_from_value(engine_cc_raw),
         "engine_power_hp": _int_from_value(power_raw),
         "fuel_type": (p("fuel_type")[1] or "")[:64],
+        "wheel_size": _wheel_size_from_parameters(pd),
         "gearbox": (p("gearbox")[1] or "")[:64],
         "transmission": (p("transmission")[1] or "")[:128],
         "body_type": (p("body_type")[1] or "")[:64],
         "color": (p("color")[1] or "")[:64],
+        "upholstery_color": _upholstery_color_from_parameters(pd),
         "doors": _int_from_value(doors_raw),
         "seats": _int_from_value(seats_raw),
         "make": (make_label or "")[:128],
@@ -187,6 +329,7 @@ def advert_to_car_offer_dict(advert):
         "seller_uuid": str(seller.get("uuid") or "")[:64],
         "seller_url": (seller.get("sellerUrl") or "")[:1024],
         "seller_website": (seller.get("website") or "")[:1024],
+        "listing_location": _listing_location_from_seller_location(location),
         "seller_location": location,
         "image_urls": image_urls,
         "main_features": list(advert.get("mainFeatures") or []),

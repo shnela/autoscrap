@@ -1,5 +1,12 @@
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+
+EXCHANGE_RATES_TO_PLN = {
+    "PLN": Decimal("1.00"),
+    "EUR": Decimal("4.30"),
+}
 
 
 class ListingSource(models.TextChoices):
@@ -15,6 +22,18 @@ class AudioSystem(models.TextChoices):
     HARMAN_KARDON = "harman_kardon", "Harman Kardon"
     STANDARD = "standard", "Standard audio"
     OTHER_PREMIUM = "other_premium", "Other premium"
+
+
+class HeadlightQuality(models.TextChoices):
+    """Main headlight technology (from listing text; PL + EN phrases)."""
+
+    UNKNOWN = "", "Unknown / not set"
+    HALOGEN = "halogen", "Halogen"
+    XENON = "xenon", "Xenon / Bi-xenon / HID"
+    LED = "led", "LED"
+    MATRIX_LED = "matrix_led", "Matrix / Pixel / adaptive LED"
+    LASER = "laser", "Laser headlights"
+    OTHER_PREMIUM = "other_premium", "Other adaptive / premium lighting"
 
 
 class CarOffer(TimeStampedModel):
@@ -48,15 +67,18 @@ class CarOffer(TimeStampedModel):
 
     year = models.PositiveIntegerField(null=True, blank=True)
     mileage_km = models.PositiveIntegerField(null=True, blank=True)
+    engine_model = models.CharField(max_length=128, blank=True)
     engine_cc = models.PositiveIntegerField(null=True, blank=True)
     engine_power_hp = models.PositiveIntegerField(null=True, blank=True)
     engine_power_kw = models.PositiveIntegerField(null=True, blank=True)
     fuel_type = models.CharField(max_length=64, blank=True)
+    wheel_size = models.CharField(max_length=32, blank=True)
     gearbox = models.CharField(max_length=64, blank=True)
     transmission = models.CharField(max_length=128, blank=True)
     drive_train = models.CharField(max_length=64, blank=True)
     body_type = models.CharField(max_length=64, blank=True)
     color = models.CharField(max_length=64, blank=True)
+    upholstery_color = models.CharField(max_length=64, blank=True)
     paint_type = models.CharField(max_length=64, blank=True)
     doors = models.PositiveSmallIntegerField(null=True, blank=True)
     seats = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -102,6 +124,7 @@ class CarOffer(TimeStampedModel):
     seller_sell_id = models.CharField(max_length=32, blank=True)
     seller_is_dealer = models.BooleanField(null=True, blank=True)
     seller_links = models.JSONField(null=True, blank=True)
+    listing_location = models.CharField(max_length=256, blank=True, db_index=True)
     seller_location = models.JSONField(null=True, blank=True)
 
     image_urls = models.JSONField(default=list, blank=True)
@@ -123,7 +146,12 @@ class CarOffer(TimeStampedModel):
     feature_rear_air_suspension = models.BooleanField(
         null=True,
         blank=True,
-        help_text="Rear-only or four-corner adaptive air suspension with self-levelling at rear.",
+        help_text="Legacy combined flag: rear self-levelling and/or full pneumatic air suspension.",
+    )
+    feature_pneumatic_suspension = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Pneumatic or adaptive air suspension (PL: zawieszenie pneumatyczne, Four-C; EN: pneumatic/air suspension, Airmatic).",
     )
     # Safety & driver assistance
     feature_pilot_assist = models.BooleanField(
@@ -143,6 +171,14 @@ class CarOffer(TimeStampedModel):
     )
     feature_surround_view_camera_360 = models.BooleanField(null=True, blank=True)
     feature_front_rear_parking_sensors = models.BooleanField(null=True, blank=True)
+    headlight_quality = models.CharField(
+        max_length=32,
+        choices=HeadlightQuality.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Main headlight type inferred from listing (PL/EN). Fog-only LED may still classify as LED.",
+    )
     # Comfort & interior
     feature_panoramic_roof = models.BooleanField(null=True, blank=True)
     feature_four_zone_climate = models.BooleanField(null=True, blank=True)
@@ -187,3 +223,17 @@ class CarOffer(TimeStampedModel):
 
     def __str__(self):
         return "{} [{}] {}".format(self.title, self.source, self.external_listing_id)
+
+    @property
+    def price_pln(self):
+        if self.price_amount is None:
+            return None
+        currency = (self.price_currency or "PLN").upper()
+        rate = EXCHANGE_RATES_TO_PLN.get(currency)
+        if rate is None:
+            return None
+        try:
+            amount = Decimal(self.price_amount)
+        except (InvalidOperation, TypeError, ValueError):
+            return None
+        return (amount * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

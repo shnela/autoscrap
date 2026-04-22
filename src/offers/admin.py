@@ -1,6 +1,10 @@
 from django.contrib import admin
 
-from offers.admin_filters import CarOfferFeatureFilters
+from offers.admin_filters import (
+    CarOfferFeatureFilters,
+    MileageFromFilter,
+    MileageToFilter,
+)
 from offers.models import CarOffer
 
 
@@ -10,25 +14,43 @@ class CarOfferAdmin(admin.ModelAdmin):
         "title",
         "source",
         "year",
+        "fuel_type",
+        "wheel_size",
+        "engine_model",
+        "color",
+        "upholstery_color",
         "audio_system",
+        "headlight_quality",
         "feature_awd",
+        "feature_pneumatic_suspension",
         "feature_panoramic_roof",
         "feature_pilot_assist",
-        "price_amount",
-        "price_currency",
+        "is_first_owner",
+        "service_record",
+        "price_pln_display",
         "mileage_km",
+        "vin",
         "make",
         "model",
+        "listing_location",
         "seller_name",
         "listing_created_at",
         "modified",
     )
     list_filter = (
+        MileageFromFilter,
+        MileageToFilter,
         "source",
         "year",
         "audio_system",
+        "headlight_quality",
         "make",
         "fuel_type",
+        "wheel_size",
+        "model",
+        "engine_model",
+        "color",
+        "upholstery_color",
         "gearbox",
         "transmission",
         "drive_train",
@@ -91,11 +113,14 @@ class CarOfferAdmin(admin.ModelAdmin):
                     "mileage_km",
                     "vin",
                     "fuel_type",
+                    "wheel_size",
+                    "engine_model",
                     "gearbox",
                     "transmission",
                     "drive_train",
                     "body_type",
                     "color",
+                    "upholstery_color",
                     "paint_type",
                     "doors",
                     "seats",
@@ -109,6 +134,7 @@ class CarOfferAdmin(admin.ModelAdmin):
                     "first_registration_date",
                     "date_registration",
                     "country_origin",
+                    "listing_location",
                 )
             },
         ),
@@ -139,6 +165,7 @@ class CarOfferAdmin(admin.ModelAdmin):
                     "feature_increased_clearance_off_road_mode",
                     "feature_hill_descent_control",
                     "feature_rear_air_suspension",
+                    "feature_pneumatic_suspension",
                 ),
             },
         ),
@@ -152,6 +179,7 @@ class CarOfferAdmin(admin.ModelAdmin):
                     "feature_cross_traffic_alert_reverse_brake",
                     "feature_surround_view_camera_360",
                     "feature_front_rear_parking_sensors",
+                    "headlight_quality",
                 ),
             },
         ),
@@ -219,3 +247,15 @@ class CarOfferAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    @admin.display(boolean=True, ordering="previous_owners", description="First owner")
+    def is_first_owner(self, obj):
+        if obj.previous_owners is None:
+            return None
+        return obj.previous_owners <= 1
+
+    @admin.display(description="Price PLN")
+    def price_pln_display(self, obj):
+        if obj.price_pln is None:
+            return None
+        return f"{obj.price_pln}"

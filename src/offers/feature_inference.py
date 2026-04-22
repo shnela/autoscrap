@@ -3,6 +3,7 @@
 Heuristic extraction of equipment flags from listing text (title, description,
 structured equipment lists). Used by scrapers — no manual admin entry required.
 """
+import html
 import re
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -11,6 +12,14 @@ _AUDIO_BOWERS = "bowers_wilkins"
 _AUDIO_HK = "harman_kardon"
 _AUDIO_STANDARD = "standard"
 _AUDIO_OTHER_PREMIUM = "other_premium"
+
+# Keep in sync with offers.models.HeadlightQuality
+_HL_HALOGEN = "halogen"
+_HL_XENON = "xenon"
+_HL_LED = "led"
+_HL_MATRIX = "matrix_led"
+_HL_LASER = "laser"
+_HL_OTHER_PREMIUM = "other_premium"
 
 
 def _norm(s: str) -> str:
@@ -36,7 +45,7 @@ def flatten_otomoto_equipment(equipment: Any) -> str:
             continue
         for val in grp.get("values") or []:
             if isinstance(val, dict):
-                out.append(val.get("label") or "")
+                out.append(html.unescape(val.get("label") or ""))
     return " ".join(out)
 
 
@@ -61,11 +70,13 @@ def empty_feature_defaults() -> Dict[str, Any]:
         "feature_increased_clearance_off_road_mode": None,
         "feature_hill_descent_control": None,
         "feature_rear_air_suspension": None,
+        "feature_pneumatic_suspension": None,
         "feature_pilot_assist": None,
         "feature_city_safety": None,
         "feature_cross_traffic_alert_reverse_brake": None,
         "feature_surround_view_camera_360": None,
         "feature_front_rear_parking_sensors": None,
+        "headlight_quality": "",
         "feature_panoramic_roof": None,
         "feature_four_zone_climate": None,
         "feature_power_tailgate": None,
@@ -125,10 +136,67 @@ _P = {
         re.compile(r"pneumatic\s*suspension", re.I),
         re.compile(r"self[-\s]?levell?ing", re.I),
         re.compile(r"four[-\s]?c\b", re.I),
+        re.compile(r"układ\w*\s+four[\s-]?c", re.I),
+        re.compile(r"z\s+układem\s+four", re.I),
         re.compile(r"zawieszenie\s+pneumatyczne", re.I),
         re.compile(r"pneumatyczne\s+zawieszenie", re.I),
         re.compile(r"nivelacja", re.I),
         re.compile(r"adaptacyjn(e|y)\s+zawieszen", re.I),
+        re.compile(r"active\s+(chassis|damp(?:ing|ers))", re.I),
+        re.compile(r"airmatic", re.I),
+        re.compile(r"luftfeder", re.I),
+    ],
+    "headlamp_laser": [
+        re.compile(r"laser\s*light", re.I),
+        re.compile(r"laser\s*head", re.I),
+        re.compile(r"reflektor\w*\s+laser", re.I),
+    ],
+    "headlamp_matrix": [
+        re.compile(r"matrix\s*led", re.I),
+        re.compile(r"pixel\s*led", re.I),
+        re.compile(r"adaptive\s*(beam|led|headlight)", re.I),
+        re.compile(r"intelligent\s*light", re.I),
+        re.compile(r"reflektor\w*\s+matryc", re.I),
+        re.compile(r"światła\s+matryc", re.I),
+        re.compile(r"matrycowe\s+led", re.I),
+    ],
+    # Curve / corner illumination (Volvo: doświetlanie zakrętów with Full LED — adaptive LED, not matrix pixels)
+    "headlamp_corner": [
+        re.compile(r"doświetlan\w+\s+zakręt", re.I),
+        re.compile(r"doświetlen\w+\s+zakręt", re.I),
+        re.compile(r"oświetlen\w+\s+zakręt", re.I),
+        re.compile(r"doświetlan\w+\s+w\s+zakręt", re.I),
+        re.compile(r"cornering\s+light", re.I),
+        re.compile(r"active\s+bending\s+light", re.I),
+        re.compile(r"bending\s+light", re.I),
+        re.compile(r"kurvenlicht", re.I),
+        re.compile(r"curve\s+light", re.I),
+        re.compile(r"swivell?ing\s+headlight", re.I),
+    ],
+    "headlamp_led": [
+        re.compile(r"full\s*led", re.I),
+        re.compile(r"reflektor\w*\s+.*\bled\b", re.I),
+        re.compile(r"\bled\b.*reflektor", re.I),
+        re.compile(r"headlight\w*\s+.*\bled\b", re.I),
+        re.compile(r"\bled\b.*headlight", re.I),
+        re.compile(r"thor'?s?\s*hammer", re.I),
+        re.compile(r"światła\s+przednie\s+.*\bled\b", re.I),
+        re.compile(r"lamp\w*\s+przedni\w*\s+.*\bled\b", re.I),
+        re.compile(r"led\s+headlamp", re.I),
+        re.compile(r"led\s+main\s+beam", re.I),
+    ],
+    "headlamp_xenon": [
+        re.compile(r"bi[\s-]?xenon", re.I),
+        re.compile(r"biksenon", re.I),
+        re.compile(r"\bxenon\b", re.I),
+        re.compile(r"\bksenon\b", re.I),
+        re.compile(r"hid\s*head", re.I),
+    ],
+    "headlamp_halogen": [
+        re.compile(r"halogen\w*\s+reflektor", re.I),
+        re.compile(r"reflektor\w*\s+halogen", re.I),
+        re.compile(r"halogen\s+headlight", re.I),
+        re.compile(r"światła\s+halogen", re.I),
     ],
     "pilot_assist": [
         re.compile(r"pilot\s*assist", re.I),
@@ -253,10 +321,11 @@ def infer_features_from_text(
     model_line: str = "",
 ) -> Dict[str, Any]:
     """
-    Return a dict suitable for merging into CarOffer (all feature keys + audio_system).
+    Return a dict suitable for merging into CarOffer (feature keys, audio_system, headlight_quality).
     """
     out = empty_feature_defaults()
     hay = _combine_haystack(title, description, equipment_text, main_features_text, drive_train, transmission, model_line)
+    text_hay = _combine_haystack(title, description, equipment_text, main_features_text, model_line)
 
     if not hay and not _norm(drive_train):
         return out
@@ -272,12 +341,13 @@ def infer_features_from_text(
         elif _any(combined_dt, _P["awd"]):
             out["feature_awd"] = True
 
-    # Text fallbacks for AWD
-    if out["feature_awd"] is None:
-        if _any(hay, _P["fwd"]):
-            out["feature_awd"] = False
-        elif _any(hay, _P["awd"]):
-            out["feature_awd"] = True
+    # Description/equipment text can correct inconsistent structured drivetrain metadata.
+    text_has_fwd = _any(text_hay, _P["fwd"])
+    text_has_awd = _any(text_hay, _P["awd"])
+    if text_has_awd and not text_has_fwd:
+        out["feature_awd"] = True
+    elif text_has_fwd and not text_has_awd:
+        out["feature_awd"] = False
 
     # V90/V60 Cross Country → usually raised clearance + AWD
     if _any(hay, _P["cross_country"]):
@@ -293,6 +363,7 @@ def infer_features_from_text(
 
     if _any(hay, _P["air_susp"]):
         out["feature_rear_air_suspension"] = True
+        out["feature_pneumatic_suspension"] = True
 
     if _any(hay, _P["pilot_assist"]):
         out["feature_pilot_assist"] = True
@@ -308,6 +379,27 @@ def infer_features_from_text(
 
     if _any(hay, _P["parking_sensors"]):
         out["feature_front_rear_parking_sensors"] = True
+
+    # Main headlights (priority: laser > matrix > LED+cornering > plain LED > xenon > halogen > generic premium)
+    if _any(hay, _P["headlamp_laser"]):
+        out["headlight_quality"] = _HL_LASER
+    elif _any(hay, _P["headlamp_matrix"]):
+        out["headlight_quality"] = _HL_MATRIX
+    elif _any(hay, _P["headlamp_led"]) and _any(hay, _P["headlamp_corner"]):
+        out["headlight_quality"] = _HL_MATRIX
+    elif _any(hay, _P["headlamp_led"]):
+        out["headlight_quality"] = _HL_LED
+    elif _any(hay, _P["headlamp_xenon"]):
+        out["headlight_quality"] = _HL_XENON
+    elif _any(hay, _P["headlamp_halogen"]):
+        out["headlight_quality"] = _HL_HALOGEN
+    elif re.search(
+        r"premium\s*light|adaptive\s*light|swivell?ing\s*head|kurvenlicht|"
+        r"dynamic\s*light\s*assist|oświetlenie\s+adaptacyjne",
+        hay,
+        re.I,
+    ):
+        out["headlight_quality"] = _HL_OTHER_PREMIUM
 
     if _any(hay, _P["panoramic"]):
         out["feature_panoramic_roof"] = True
@@ -350,10 +442,15 @@ def infer_features_from_text(
 
 
 def infer_from_otomoto_advert(advert: dict) -> Dict[str, Any]:
-    title = advert.get("title") or ""
-    desc = advert.get("description") or ""
+    # Otomoto embeds HTML in description; entities like &amp; break regex (e.g. Bowers &amp; Wilkins).
+    title = html.unescape(advert.get("title") or "")
+    desc = html.unescape(advert.get("description") or "")
     mf = advert.get("mainFeatures") or []
-    mf_txt = " ".join(str(x) for x in mf) if isinstance(mf, list) else ""
+    mf_txt = (
+        " ".join(html.unescape(str(x)) for x in mf)
+        if isinstance(mf, list)
+        else ""
+    )
     eq_txt = flatten_otomoto_equipment(advert.get("equipment"))
     pd = advert.get("parametersDict") or {}
 
@@ -363,7 +460,7 @@ def infer_from_otomoto_advert(advert: dict) -> Dict[str, Any]:
             return ""
         vals = e.get("values") or []
         if vals and isinstance(vals[0], dict):
-            return vals[0].get("label") or ""
+            return html.unescape(vals[0].get("label") or "")
         return ""
 
     model_line = (lbl("model") or "") + " " + (advert.get("title") or "")
@@ -387,9 +484,9 @@ def _strip_html_basic(s: str) -> str:
 
 def infer_from_autoscout_listing_details(ld: dict) -> Dict[str, Any]:
     v = ld.get("vehicle") or {}
-    desc = _strip_html_basic(ld.get("description") or "")
+    desc = _strip_html_basic(html.unescape(ld.get("description") or ""))
     eq_txt = flatten_autoscout_equipment(v.get("equipment"))
-    marketing = v.get("marketingDescription") or ""
+    marketing = html.unescape(v.get("marketingDescription") or "")
     alt = ld.get("imgAltText") or ""
     drive = v.get("driveTrain") or ""
     title_guess = " ".join(
