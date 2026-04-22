@@ -25,6 +25,8 @@ _HL_OTHER_PREMIUM = "other_premium"
 def _norm(s: str) -> str:
     if not s:
         return ""
+    for u in ("\u00a0", "\u2007", "\u202f", "\u2009", "\u200a", "\u2008"):
+        s = s.replace(u, " ")
     return re.sub(r"\s+", " ", s.lower()).strip()
 
 
@@ -36,6 +38,12 @@ def _combine_haystack(*parts: str) -> str:
     return _norm(" \n ".join(p for p in parts if p))
 
 
+def _strip_html_basic(s: str) -> str:
+    if not s:
+        return ""
+    return re.sub(r"<[^>]+>", " ", s)
+
+
 def flatten_otomoto_equipment(equipment: Any) -> str:
     if not equipment or not isinstance(equipment, list):
         return ""
@@ -45,7 +53,7 @@ def flatten_otomoto_equipment(equipment: Any) -> str:
             continue
         for val in grp.get("values") or []:
             if isinstance(val, dict):
-                out.append(html.unescape(val.get("label") or ""))
+                out.append(_strip_html_basic(html.unescape(val.get("label") or "")))
     return " ".join(out)
 
 
@@ -271,6 +279,9 @@ _P = {
     ],
     "bowers": [
         re.compile(r"bowers\s*[&\u0026]?\s*wilkins", re.I),
+        # Volvo / Otomoto catalog: "PREMIUM SOUND BOWERS & WILKINS" (with or without &)
+        re.compile(r"premium\s*sound\s+bowers(?:\s*[&\u0026]\s*|\s+)wilkins", re.I),
+        re.compile(r"bowers(?:\s*[&\u0026]\s*|\s+|\s*-\s*)wilkins", re.I),
         re.compile(r"\bb\s*&\s*w\b", re.I),
         re.compile(r"\bb\s*/\s*w\b", re.I),
         re.compile(r"bowers\s+and\s+wilkins", re.I),
@@ -443,11 +454,12 @@ def infer_features_from_text(
 
 def infer_from_otomoto_advert(advert: dict) -> Dict[str, Any]:
     # Otomoto embeds HTML in description; entities like &amp; break regex (e.g. Bowers &amp; Wilkins).
-    title = html.unescape(advert.get("title") or "")
-    desc = html.unescape(advert.get("description") or "")
+    # Strip tags so "BOWERS</strong> & <strong>WILKINS" becomes searchable "bowers & wilkins".
+    title = _strip_html_basic(html.unescape(advert.get("title") or ""))
+    desc = _strip_html_basic(html.unescape(advert.get("description") or ""))
     mf = advert.get("mainFeatures") or []
     mf_txt = (
-        " ".join(html.unescape(str(x)) for x in mf)
+        " ".join(_strip_html_basic(html.unescape(str(x))) for x in mf)
         if isinstance(mf, list)
         else ""
     )
@@ -460,10 +472,10 @@ def infer_from_otomoto_advert(advert: dict) -> Dict[str, Any]:
             return ""
         vals = e.get("values") or []
         if vals and isinstance(vals[0], dict):
-            return html.unescape(vals[0].get("label") or "")
+            return _strip_html_basic(html.unescape(vals[0].get("label") or ""))
         return ""
 
-    model_line = (lbl("model") or "") + " " + (advert.get("title") or "")
+    model_line = (lbl("model") or "") + " " + title
 
     return infer_features_from_text(
         title=title,
@@ -474,12 +486,6 @@ def infer_from_otomoto_advert(advert: dict) -> Dict[str, Any]:
         transmission=lbl("gearbox"),
         model_line=model_line,
     )
-
-
-def _strip_html_basic(s: str) -> str:
-    if not s:
-        return ""
-    return re.sub(r"<[^>]+>", " ", s)
 
 
 def infer_from_autoscout_listing_details(ld: dict) -> Dict[str, Any]:

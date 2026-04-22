@@ -81,6 +81,18 @@ Other spiders (see `src/crawler/spiders/`):
 
 Enabled in `src/crawler/settings.py` (`HTTPCACHE_ENABLED`, `HTTPCACHE_DIR = "httpcache"`). With default layout, cache data is stored under **`src/httpcache/`** when you run `scrapy` from `src/`.
 
+A full crawl with **only cache hits** still runs your **current** Python code on cached bytes; the DB updates only for **rows that spider actually visits** in that run (listings in the search URL), not for every `CarOffer` in the database — unlike `reinfer_otomoto_features`, which walks **all** Otomoto rows with `raw_payload`.
+
+For **Otomoto**, to re-apply inference on what is already stored in `raw_payload` (no network), run:
+
+```bash
+cd src
+uv run python manage.py reinfer_otomoto_features
+# optional: --public-slug ID6HPXLy --dry-run
+```
+
+To force **fresh** pages from the network, disable cache for that run (e.g. `scrapy crawl otomoto_offers -s HTTPCACHE_ENABLED=False`) or clear `src/httpcache/` (or repo `httpcache/` depending on CWD).
+
 ## Project layout
 
 | Path | Role |
