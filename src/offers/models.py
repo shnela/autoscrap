@@ -39,6 +39,14 @@ class AudioSystem(models.TextChoices):
     OTHER_PREMIUM = "other_premium", "Other premium"
 
 
+class OfferListingAvailability(models.TextChoices):
+    """Whether the marketplace still serves this listing URL."""
+
+    UNKNOWN = "unknown", "Nieznana (nie sprawdzono)"
+    ACTIVE = "active", "Aktywne (ostatni crawl OK)"
+    EXPIRED = "expired", "Wygasłe / usunięte (404, 410, brak danych)"
+
+
 class HeadlightQuality(models.TextChoices):
     """Main headlight technology (from listing text; PL + EN phrases)."""
 
@@ -70,6 +78,18 @@ class CarOffer(TimeStampedModel):
         help_text="Otomoto: short ID from URL, e.g. ID6HSO0m",
     )
     url = models.URLField(max_length=1024)
+    listing_availability = models.CharField(
+        max_length=16,
+        choices=OfferListingAvailability.choices,
+        default=OfferListingAvailability.UNKNOWN,
+        db_index=True,
+        help_text="Otomoto: 404/410 lub brak advertu → wygasłe. Udany zapis z crawla → aktywne.",
+    )
+    listing_checked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Ostatni sprawdzony fetch HTTP albo udany parse strony oferty.",
+    )
     title = models.CharField(max_length=512)
     description = models.TextField(blank=True)
 

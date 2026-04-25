@@ -2,12 +2,14 @@
 import scrapy
 
 from crawler.items import CarOfferItem
+from crawler.offer_availability import mark_offer_expired
 from crawler.otomoto_parser import (
     advert_to_car_offer_dict,
     extract_next_data,
     find_advert_search,
     listing_url_for_page,
     normalized_listing_url,
+    public_slug_from_url,
 )
 
 DEFAULT_LISTING_URL = (
@@ -64,7 +66,9 @@ class OtomotoOffersSpider(scrapy.Spider):
             node = edge.get("node") or {}
             url = node.get("url")
             if url:
-                yield scrapy.Request(url, callback=self.parse_offer)
+                nid = node.get("id")
+                meta = {"external_listing_id": str(nid)} if nid else {}
+                yield scrapy.Request(url, callback=self.parse_offer, meta=meta)
 
         fetched = len(edges)
         next_offset = current_offset + fetched
@@ -78,14 +82,42 @@ class OtomotoOffersSpider(scrapy.Spider):
             )
 
     def parse_offer(self, response):
+        meta = response.meta or {}
+        eid = meta.get("external_listing_id")
+
+        if response.status in (404, 410):
+            n = mark_offer_expired(
+                source="otomoto",
+                external_listing_id=eid,
+                public_slug=public_slug_from_url(response.url) if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="otomoto", url=response.url)
+            self.logger.info("Listing HTTP %s (expired) %s", response.status, response.url)
+            return
+
         data = extract_next_data(response.text)
         if not data:
             self.logger.warning("No __NEXT_DATA__ on %s", response.url)
+            n = mark_offer_expired(
+                source="otomoto",
+                external_listing_id=eid,
+                public_slug=public_slug_from_url(response.url) if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="otomoto", url=response.url)
             return
 
         advert = data.get("props", {}).get("pageProps", {}).get("advert")
         if not advert:
             self.logger.warning("No advert in pageProps for %s", response.url)
+            n = mark_offer_expired(
+                source="otomoto",
+                external_listing_id=eid,
+                public_slug=public_slug_from_url(response.url) if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="otomoto", url=response.url)
             return
 
         payload = advert_to_car_offer_dict(advert)

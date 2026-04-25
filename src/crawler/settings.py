@@ -34,7 +34,7 @@ ROBOTSTXT_OBEY = False
 
 # Let spiders handle 410 Gone (expired listing URLs) instead of HttpErrorMiddleware dropping them.
 # Callbacks can no-op when there is no HTML payload; avoids treating 410 as a crawl-breaking error.
-HTTPERROR_ALLOWED_CODES = [410]
+HTTPERROR_ALLOWED_CODES = [404, 410]
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 # CONCURRENT_REQUESTS = 32

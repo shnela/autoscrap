@@ -93,6 +93,20 @@ uv run python manage.py reinfer_otomoto_features
 
 To force **fresh** pages from the network, disable cache for that run (e.g. `scrapy crawl otomoto_offers -s HTTPCACHE_ENABLED=False`) or clear `src/httpcache/` (or repo `httpcache/` depending on CWD).
 
+### Listing availability (`listing_availability`)
+
+`CarOffer` has **`listing_availability`** (`unknown` / `active` / `expired`) and **`listing_checked_at`**. Successful **Otomoto / AutoScout24** detail parses set **active** + timestamp; **404 / 410** or missing `advert` / `listingDetails` marks **expired** (via spiders + `mark_offer_expired`).
+
+Periodic HTTP check **without Scrapy** (cron-friendly):
+
+```bash
+cd src
+uv run python manage.py check_offer_availability --limit 100 --sleep 2
+# --dry-run  # GET only, no DB writes
+```
+
+Uses `--staleness-days` (default 7) to skip recently checked rows; skips **expired** by default (`--include-expired` to re-verify).
+
 ## Project layout
 
 | Path | Role |

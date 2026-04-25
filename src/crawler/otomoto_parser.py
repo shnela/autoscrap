@@ -4,9 +4,11 @@ import re
 from decimal import Decimal, InvalidOperation
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from offers.feature_inference import infer_from_otomoto_advert
+from offers.models import OfferListingAvailability
 
 _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json"[^>]*>(?P<json>.+?)</script>',
@@ -338,4 +340,6 @@ def advert_to_car_offer_dict(advert):
         "raw_payload": advert,
     }
     base.update(infer_from_otomoto_advert(advert))
+    base["listing_availability"] = OfferListingAvailability.ACTIVE
+    base["listing_checked_at"] = timezone.now()
     return base

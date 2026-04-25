@@ -3,9 +3,12 @@ import json
 import re
 from decimal import Decimal, InvalidOperation
 
+from django.utils import timezone
+from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
 from offers.feature_inference import infer_from_autoscout_listing_details
+from offers.models import OfferListingAvailability
 
 _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json"[^>]*>(?P<json>.+?)</script>',
@@ -304,4 +307,6 @@ def listing_details_to_offer_dict(listing_details, marketplace_domain="autoscout
         "raw_payload": listing_details,
     }
     base.update(infer_from_autoscout_listing_details(listing_details))
+    base["listing_availability"] = OfferListingAvailability.ACTIVE
+    base["listing_checked_at"] = timezone.now()
     return base

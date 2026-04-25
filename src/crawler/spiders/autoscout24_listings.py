@@ -9,6 +9,7 @@ from crawler.autoscout24_parser import (
     parse_listing_page,
 )
 from crawler.items import CarOfferItem
+from crawler.offer_availability import mark_offer_expired
 
 DEFAULT_LISTING_URL = (
     "https://www.autoscout24.com/lst/volvo/v90-cross-country"
@@ -65,9 +66,12 @@ class Autoscout24OffersSpider(scrapy.Spider):
             path = item.get("url")
             if not path:
                 continue
+            lid = item.get("id")
+            meta = {"external_listing_id": str(lid)} if lid else {}
             yield scrapy.Request(
                 response.urljoin(path),
                 callback=self.parse_offer,
+                meta=meta,
             )
 
         listing_base = response.meta.get("listing_base") or self.listing_url
@@ -79,14 +83,42 @@ class Autoscout24OffersSpider(scrapy.Spider):
             )
 
     def parse_offer(self, response):
+        meta = response.meta or {}
+        eid = meta.get("external_listing_id")
+
+        if response.status in (404, 410):
+            n = mark_offer_expired(
+                source="autoscout24",
+                external_listing_id=eid,
+                url=response.url if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="autoscout24", url=response.url)
+            self.logger.info("Listing HTTP %s (expired) %s", response.status, response.url)
+            return
+
         data = extract_next_data(response.text)
         if not data:
             self.logger.warning("No __NEXT_DATA__ on %s", response.url)
+            n = mark_offer_expired(
+                source="autoscout24",
+                external_listing_id=eid,
+                url=response.url if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="autoscout24", url=response.url)
             return
 
         ld = data.get("props", {}).get("pageProps", {}).get("listingDetails")
         if not ld:
             self.logger.warning("No listingDetails for %s", response.url)
+            n = mark_offer_expired(
+                source="autoscout24",
+                external_listing_id=eid,
+                url=response.url if not eid else None,
+            )
+            if not n:
+                mark_offer_expired(source="autoscout24", url=response.url)
             return
 
         host = urlparse(response.url).netloc or "www.autoscout24.com"
