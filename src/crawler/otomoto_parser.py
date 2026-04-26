@@ -102,6 +102,64 @@ def _parse_dt(value):
     return parse_datetime(str(value))
 
 
+def _extract_previous_owners(parameters_dict, *texts):
+    """
+    Infer previous owners count for Otomoto offers.
+
+    Priority:
+    1) structured parameters with owner-count style keys/labels
+    2) phrase-based fallback from title/description/features
+    """
+    owner_token_re = re.compile(
+        r"(owner|owners|wla[sś]ciciel|wla[sś]cicieli|od\s+nowo[sś]ci)",
+        re.I,
+    )
+    int_re = re.compile(r"\d+")
+
+    if parameters_dict:
+        for key, entry in parameters_dict.items():
+            key_l = str(key or "").lower()
+            label_l = str(entry.get("label") or "").lower()
+            if not (
+                "owner" in key_l
+                or "wlasc" in key_l
+                or "właśc" in key_l
+                or owner_token_re.search(label_l)
+            ):
+                continue
+            for raw_value in entry.get("values") or []:
+                if not isinstance(raw_value, dict):
+                    continue
+                for candidate in (raw_value.get("value"), raw_value.get("label")):
+                    if candidate in (None, ""):
+                        continue
+                    candidate_s = str(candidate).strip()
+                    num_match = int_re.search(candidate_s)
+                    if num_match:
+                        try:
+                            return int(num_match.group(0))
+                        except ValueError:
+                            pass
+                    lowered = candidate_s.lower()
+                    if (
+                        "od nowości" in lowered
+                        or "od nowosci" in lowered
+                        or "pierwszy właściciel" in lowered
+                        or "pierwszy wlasciciel" in lowered
+                    ):
+                        return 0
+
+    fallback_text = " ".join(str(t or "") for t in texts).lower()
+    if (
+        "od nowości" in fallback_text
+        or "od nowosci" in fallback_text
+        or "pierwszy właściciel" in fallback_text
+        or "pierwszy wlasciciel" in fallback_text
+    ):
+        return 0
+    return None
+
+
 def _upholstery_color_from_parameters(parameters_dict):
     """Try common Otomoto parameter keys/labels for upholstery/interior color."""
     if not parameters_dict:
@@ -277,6 +335,13 @@ def advert_to_car_offer_dict(advert):
             image_urls.append(u)
 
     url = advert.get("url") or ""
+    main_features = list(advert.get("mainFeatures") or [])
+    previous_owners = _extract_previous_owners(
+        pd,
+        advert.get("title"),
+        advert.get("description"),
+        " ".join(str(x) for x in main_features),
+    )
 
     base = {
         "source": "otomoto",
@@ -319,6 +384,7 @@ def advert_to_car_offer_dict(advert):
         "vin": _clean_vin(vin_raw)[:17],
         "country_origin": (p("country_origin")[1] or "")[:128],
         "date_registration": (reg_label or "")[:128],
+        "previous_owners": previous_owners,
         "damaged": _bool_from_otomoto(p("damaged")[0]),
         "no_accident": _bool_from_otomoto(p("no_accident")[0]),
         "registered": _bool_from_otomoto(p("registered")[0]),
@@ -334,7 +400,7 @@ def advert_to_car_offer_dict(advert):
         "listing_location": _listing_location_from_seller_location(location),
         "seller_location": location,
         "image_urls": image_urls,
-        "main_features": list(advert.get("mainFeatures") or []),
+        "main_features": main_features,
         "listing_created_at": _parse_dt(advert.get("createdAt")),
         "listing_updated_at": _parse_dt(advert.get("updatedAt")),
         "raw_payload": advert,
