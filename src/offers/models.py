@@ -28,6 +28,7 @@ class ListingSource(models.TextChoices):
     OTOMOTO = "otomoto", "Otomoto"
     AUTOSCOUT24 = "autoscout24", "AutoScout24"
     AUTOPLAC = "autoplac", "Autoplac"
+    SUPERAUTO = "superauto", "Superauto"
 
 
 class AudioSystem(models.TextChoices):
