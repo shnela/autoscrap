@@ -58,6 +58,28 @@ class MileageToFilter(admin.SimpleListFilter):
         return queryset.filter(mileage_km__lte=n)
 
 
+class IsFirstOwnerFilter(admin.SimpleListFilter):
+    title = "First owner"
+    parameter_name = "is_first_owner"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("yes", "Yes"),
+            ("no", "No"),
+            ("unknown", "Unknown"),
+        )
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == "yes":
+            return queryset.filter(previous_owners__lte=1)
+        if v == "no":
+            return queryset.filter(previous_owners__gt=1)
+        if v == "unknown":
+            return queryset.filter(previous_owners__isnull=True)
+        return queryset
+
+
 class NullableBooleanListFilter(admin.SimpleListFilter):
     """Filter nullable BooleanField: Yes / No / Unknown (NULL)."""
 

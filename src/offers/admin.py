@@ -5,6 +5,7 @@ from django.db.models import Prefetch
 
 from offers.admin_filters import (
     CarOfferFeatureFilters,
+    IsFirstOwnerFilter,
     MileageFromFilter,
     MileageToFilter,
 )
@@ -30,13 +31,11 @@ class CarOfferAdmin(admin.ModelAdmin):
         "listing_availability",
         "listing_checked_at",
         "year",
-        "fuel_type",
         "wheel_size",
         "engine_model",
         "color",
         "upholstery_color",
         "audio_system",
-        "headlight_quality",
         "feature_awd",
         "feature_pneumatic_suspension",
         "feature_panoramic_roof",
@@ -62,9 +61,7 @@ class CarOfferAdmin(admin.ModelAdmin):
         "listing_availability",
         "year",
         "audio_system",
-        "headlight_quality",
         "make",
-        "fuel_type",
         "wheel_size",
         "model",
         "engine_model",
@@ -75,6 +72,7 @@ class CarOfferAdmin(admin.ModelAdmin):
         "drive_train",
         "body_type",
         "seller_type",
+        IsFirstOwnerFilter,
         *CarOfferFeatureFilters,
     )
     search_fields = (
