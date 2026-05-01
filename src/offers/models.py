@@ -27,6 +27,7 @@ def convert_price_to_pln(amount, currency):
 class ListingSource(models.TextChoices):
     OTOMOTO = "otomoto", "Otomoto"
     AUTOSCOUT24 = "autoscout24", "AutoScout24"
+    AUTOPLAC = "autoplac", "Autoplac"
 
 
 class AudioSystem(models.TextChoices):

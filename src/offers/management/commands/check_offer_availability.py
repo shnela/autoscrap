@@ -27,7 +27,7 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--source", default="", help="Filter: otomoto | autoscout24 (empty = both)")
+        parser.add_argument("--source", default="", help="Filter: otomoto | autoscout24 | autoplac (empty = all)")
         parser.add_argument("--limit", type=int, default=200)
         parser.add_argument("--sleep", type=float, default=1.5, help="Pause between requests (seconds)")
         parser.add_argument(
